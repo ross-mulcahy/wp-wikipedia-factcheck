@@ -1,0 +1,149 @@
+.wp-wikipedia-factcheck-sidebar {
+	padding: 16px;
+
+	.components-notice {
+		margin: 0 0 16px;
+	}
+}
+
+// Search panel
+.wp-wikipedia-factcheck-search {
+	margin-bottom: 16px;
+
+	.components-text-control__input {
+		width: 100%;
+	}
+}
+
+.wp-wikipedia-factcheck-use-selection {
+	display: block;
+	margin-bottom: 8px;
+	font-size: 12px;
+}
+
+.wp-wikipedia-factcheck-search-actions {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	margin-top: 8px;
+
+	.components-spinner {
+		margin: 0;
+	}
+}
+
+// Result panel
+.wp-wikipedia-factcheck-result {
+	border-top: 1px solid #ddd;
+	padding-top: 16px;
+}
+
+.wp-wikipedia-factcheck-result-header {
+	margin-bottom: 12px;
+
+	h3 {
+		margin: 0 0 4px;
+		font-size: 14px;
+		line-height: 1.4;
+	}
+}
+
+.wp-wikipedia-factcheck-date {
+	display: block;
+	font-size: 12px;
+	color: #757575;
+	margin-bottom: 6px;
+}
+
+// Image
+.wp-wikipedia-factcheck-image {
+	text-align: center;
+	margin-bottom: 12px;
+
+	img {
+		max-width: 100%;
+		max-height: 120px;
+		height: auto;
+		border-radius: 4px;
+	}
+}
+
+// Abstract
+.wp-wikipedia-factcheck-abstract {
+	margin-bottom: 12px;
+	font-size: 13px;
+	line-height: 1.5;
+
+	p {
+		margin: 0 0 6px;
+	}
+}
+
+// Categories
+.wp-wikipedia-factcheck-categories {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	margin-bottom: 12px;
+}
+
+.wp-wikipedia-factcheck-category-pill {
+	display: inline-block;
+	padding: 2px 10px;
+	font-size: 12px;
+	background: #f0f0f0;
+	border-radius: 12px;
+	color: #1e1e1e;
+}
+
+// Wikidata
+.wp-wikipedia-factcheck-wikidata {
+	font-size: 12px;
+	margin-bottom: 12px;
+	color: #757575;
+}
+
+// License
+.wp-wikipedia-factcheck-license {
+	font-size: 11px;
+	color: #757575;
+	border-top: 1px solid #ddd;
+	padding-top: 12px;
+	margin-top: 12px;
+}
+
+// Credibility badge
+.wp-wikipedia-factcheck-badge {
+	display: inline-block;
+	padding: 2px 8px;
+	font-size: 11px;
+	font-weight: 600;
+	border-radius: 10px;
+	line-height: 1.4;
+	cursor: default;
+
+	&--grey {
+		background: #ddd;
+		color: #555;
+	}
+
+	&--green {
+		background: #d4edda;
+		color: #155724;
+	}
+
+	&--amber {
+		background: #fff3cd;
+		color: #856404;
+	}
+
+	&--red {
+		background: #f8d7da;
+		color: #721c24;
+	}
+}
+
+// Not-found notice
+.wp-wikipedia-factcheck-not-found {
+	margin-top: 8px;
+}

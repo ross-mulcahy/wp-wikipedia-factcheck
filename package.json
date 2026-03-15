@@ -1,0 +1,23 @@
+{
+	"name": "wp-wikipedia-factcheck",
+	"version": "1.0.0",
+	"description": "Wikipedia-powered fact-check panel for the Gutenberg block editor.",
+	"license": "GPL-2.0-or-later",
+	"scripts": {
+		"build": "wp-scripts build",
+		"start": "wp-scripts start",
+		"lint:js": "wp-scripts lint-js src/"
+	},
+	"devDependencies": {
+		"@wordpress/scripts": "^30.0.0"
+	},
+	"dependencies": {
+		"@wordpress/block-editor": "*",
+		"@wordpress/components": "*",
+		"@wordpress/data": "*",
+		"@wordpress/editor": "*",
+		"@wordpress/element": "*",
+		"@wordpress/i18n": "*",
+		"@wordpress/plugins": "*"
+	}
+}
