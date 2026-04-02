@@ -14,11 +14,15 @@
 		{
 			"step": "installPlugin",
 			"pluginData": {
-				"resource": "url",
-				"url": "https://github.com/ross-mulcahy/wp-wikipedia-factcheck/archive/refs/heads/codex-fix-wikipedia-lookup.zip?v=1.0.2"
+				"resource": "git:directory",
+				"url": "https://github.com/ross-mulcahy/wp-wikipedia-factcheck",
+				"ref": "codex-fix-wikipedia-lookup",
+				"refType": "branch",
+				"path": "/"
 			},
 			"options": {
-				"activate": true
+				"activate": true,
+				"targetFolderName": "wp-wikipedia-factcheck"
 			}
 		}
 	]
