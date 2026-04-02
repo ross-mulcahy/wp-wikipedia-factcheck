@@ -1,6 +1,6 @@
 {
 	"name": "wp-wikipedia-factcheck",
-	"version": "1.0.4",
+	"version": "1.0.5",
 	"description": "Wikipedia-powered fact-check panel for the Gutenberg block editor.",
 	"license": "GPL-2.0-or-later",
 	"scripts": {
