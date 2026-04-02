@@ -128,37 +128,12 @@ function getSignalSummary( result, searchedTerm ) {
 	};
 }
 
-function getSuggestedChecks( result ) {
-	const checks = [
-		__( 'Compare names, numbers, and dates in your draft against the article summary and full page.', 'wp-wikipedia-factcheck' ),
-	];
-
-	if ( result.date_modified ) {
-		checks.push( __( 'Open the article before publishing if the fact depends on something time-sensitive.', 'wp-wikipedia-factcheck' ) );
-	}
-
-	if ( result.wikidata_qid ) {
-		checks.push( __( 'Use the Wikidata entry for identifiers, alternate names, and structured facts.', 'wp-wikipedia-factcheck' ) );
-	}
-
-	if ( getCategoryWarnings( result.categories ).length > 0 ) {
-		checks.push( __( 'Treat maintenance categories as a warning sign and confirm contentious details from another source.', 'wp-wikipedia-factcheck' ) );
-	}
-
-	return checks.slice( 0, 3 );
-}
-
 export default function ResultPanel( {
 	result,
 	searchedTerm,
-	selectedText,
-	analysis,
-	analysisError,
-	analyzing,
 	briefing,
 	briefingError,
 	briefingLoading,
-	onAnalyze,
 	onGenerateBriefing,
 } ) {
 	if ( ! result.found ) {
@@ -178,8 +153,6 @@ export default function ResultPanel( {
 	const quickSummary = getFirstSentence( result.abstract );
 	const warnings = getCategoryWarnings( result.categories );
 	const signalSummary = getSignalSummary( result, searchedTerm );
-	const suggestedChecks = getSuggestedChecks( result );
-
 	return (
 		<div className="wp-wikipedia-factcheck-result">
 			<div className="wp-wikipedia-factcheck-hero">
@@ -197,7 +170,7 @@ export default function ResultPanel( {
 				</div>
 
 				<div className="wp-wikipedia-factcheck-hero__body">
-					<div className="wp-wikipedia-factcheck-hero__topline">
+					<div className="wp-wikipedia-factcheck-hero__badges">
 						<span className={ `wp-wikipedia-factcheck-signal-card__eyebrow wp-wikipedia-factcheck-signal-card__eyebrow--${ signalSummary.tone }` }>
 							{ signalSummary.title }
 						</span>
@@ -299,74 +272,6 @@ export default function ResultPanel( {
 					</div>
 				) }
 			</div>
-
-			<div className="wp-wikipedia-factcheck-section">
-				<h4>{ __( 'Suggested Checks', 'wp-wikipedia-factcheck' ) }</h4>
-				<ul className="wp-wikipedia-factcheck-list">
-					{ suggestedChecks.map( ( check ) => (
-						<li key={ check }>{ check }</li>
-					) ) }
-				</ul>
-			</div>
-
-			<div className="wp-wikipedia-factcheck-section">
-				<h4>{ __( 'AI Claim Check', 'wp-wikipedia-factcheck' ) }</h4>
-				{ ! selectedText && (
-					<p>{ __( 'Select a sentence or paragraph in the editor, then run an AI claim check to spot likely mismatches in names, dates, numbers, or core assertions.', 'wp-wikipedia-factcheck' ) }</p>
-				) }
-				{ selectedText && (
-					<>
-						<p className="wp-wikipedia-factcheck-selection-preview">
-							<strong>{ __( 'Selected draft text:', 'wp-wikipedia-factcheck' ) }</strong>{ ' ' }
-							{ selectedText }
-						</p>
-						<button
-							type="button"
-							className="components-button is-secondary"
-							onClick={ onAnalyze }
-							disabled={ analyzing }
-						>
-							{ analyzing ? __( 'Analyzing…', 'wp-wikipedia-factcheck' ) : __( 'Compare with Wikipedia', 'wp-wikipedia-factcheck' ) }
-						</button>
-					</>
-				) }
-				{ analysisError && (
-					<Notice status="error" isDismissible={ false }>
-						{ analysisError }
-					</Notice>
-				) }
-				{ analysis && (
-					<div className="wp-wikipedia-factcheck-analysis">
-						<p className="wp-wikipedia-factcheck-analysis__summary">
-							<strong>{ analysis.verdict }</strong>
-							{ ' ' }
-							{ analysis.summary }
-						</p>
-						{ analysis.mismatches?.length > 0 ? (
-							<ul className="wp-wikipedia-factcheck-list wp-wikipedia-factcheck-list--warning">
-								{ analysis.mismatches.map( ( mismatch, index ) => (
-									<li key={ `${ mismatch.type }-${ index }` }>
-										<strong>{ mismatch.type }</strong>: { mismatch.explanation }
-									</li>
-								) ) }
-							</ul>
-						) : (
-							<p>{ __( 'No obvious mismatches were found from the summary provided.', 'wp-wikipedia-factcheck' ) }</p>
-						) }
-					</div>
-				) }
-			</div>
-
-			{ warnings.length > 0 && (
-				<div className="wp-wikipedia-factcheck-section">
-					<h4>{ __( 'Watch-outs', 'wp-wikipedia-factcheck' ) }</h4>
-					<ul className="wp-wikipedia-factcheck-list wp-wikipedia-factcheck-list--warning">
-						{ warnings.map( ( warning ) => (
-							<li key={ warning }>{ warning }</li>
-						) ) }
-					</ul>
-				</div>
-			) }
 
 			{ result.categories?.length > 0 && (
 				<div className="wp-wikipedia-factcheck-section">

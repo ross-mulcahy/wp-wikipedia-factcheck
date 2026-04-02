@@ -54,9 +54,6 @@ export default function FactCheckSidebar() {
 	const [ error, setError ] = useState( null );
 	const [ loading, setLoading ] = useState( false );
 	const [ searchedTerm, setSearchedTerm ] = useState( '' );
-	const [ analysis, setAnalysis ] = useState( null );
-	const [ analysisError, setAnalysisError ] = useState( null );
-	const [ analyzing, setAnalyzing ] = useState( false );
 	const [ suggestions, setSuggestions ] = useState( [] );
 	const [ suggestionsError, setSuggestionsError ] = useState( null );
 	const [ suggesting, setSuggesting ] = useState( false );
@@ -93,8 +90,6 @@ export default function FactCheckSidebar() {
 		setSearchedTerm( term );
 		setError( null );
 		setResult( null );
-		setAnalysis( null );
-		setAnalysisError( null );
 		setBriefing( null );
 		setBriefingError( null );
 		setLoading( true );
@@ -138,33 +133,10 @@ export default function FactCheckSidebar() {
 		await handleSearch( term, { withBriefing: true } );
 	};
 
-	const handleAnalyze = async () => {
-		if ( ! selectedText || ! searchedTerm ) {
-			return;
-		}
-
-		setAnalyzing( true );
-		setAnalysisError( null );
-
-		try {
-			const data = await requestWikipediaFactcheck( 'analyze', {
-				term: searchedTerm,
-				selected_text: selectedText,
-			} );
-			setAnalysis( data );
-		} catch ( requestError ) {
-			setAnalysisError( requestError.message || __( 'Could not analyze the selected text.', 'wp-wikipedia-factcheck' ) );
-		} finally {
-			setAnalyzing( false );
-		}
-	};
-
 	const handleClear = () => {
 		setSearchedTerm( '' );
 		setResult( null );
 		setError( null );
-		setAnalysis( null );
-		setAnalysisError( null );
 		setBriefing( null );
 		setBriefingError( null );
 	};
@@ -213,14 +185,9 @@ export default function FactCheckSidebar() {
 					<ResultPanel
 						result={ result }
 						searchedTerm={ searchedTerm }
-						selectedText={ selectedText }
-						analysis={ analysis }
-						analysisError={ analysisError }
-						analyzing={ analyzing }
 						briefing={ briefing }
 						briefingError={ briefingError }
 						briefingLoading={ briefingLoading }
-						onAnalyze={ handleAnalyze }
 						onGenerateBriefing={ () => loadBriefing( searchedTerm ) }
 					/>
 				) }
