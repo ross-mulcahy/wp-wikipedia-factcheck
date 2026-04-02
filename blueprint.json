@@ -15,7 +15,7 @@
 			"step": "installPlugin",
 			"pluginData": {
 				"resource": "url",
-				"url": "https://github.com/ross-mulcahy/wp-wikipedia-factcheck/archive/refs/heads/codex-fix-wikipedia-lookup.zip"
+				"url": "https://github.com/ross-mulcahy/wp-wikipedia-factcheck/archive/refs/heads/codex-fix-wikipedia-lookup.zip?v=1.0.1"
 			},
 			"options": {
 				"activate": true
