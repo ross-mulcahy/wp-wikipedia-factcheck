@@ -119,7 +119,7 @@ function wp_wikipedia_factcheck_lookup( WP_REST_Request $request ): WP_REST_Resp
 	$language = get_option( 'wikimedia_enterprise_language', 'en' );
 
 	// Check cache first.
-	$cache_key = 'wikimedia_fc_' . md5( $term . '_' . $language );
+	$cache_key = 'wikimedia_fc_v2_' . md5( $term . '_' . $language );
 	$cached    = get_transient( $cache_key );
 
 	if ( false !== $cached ) {
@@ -169,14 +169,15 @@ function wp_wikipedia_factcheck_lookup( WP_REST_Request $request ): WP_REST_Resp
  * Handle test connection requests.
  */
 function wp_wikipedia_factcheck_test_connection(): WP_REST_Response {
-	$api   = new Wikimedia_API();
-	$token = $api->get_access_token( true );
+	$language = get_option( 'wikimedia_enterprise_language', 'en' );
+	$api      = new Wikimedia_API();
+	$result   = $api->lookup( 'Main_Page', $language );
 
-	if ( is_wp_error( $token ) ) {
+	if ( is_wp_error( $result ) ) {
 		return new WP_REST_Response(
 			array(
 				'success' => false,
-				'message' => $token->get_error_message(),
+				'message' => $result->get_error_message(),
 			),
 			200
 		);
@@ -185,10 +186,20 @@ function wp_wikipedia_factcheck_test_connection(): WP_REST_Response {
 	return new WP_REST_Response(
 		array(
 			'success' => true,
-			'message' => __( 'Connection successful! Wikimedia Enterprise API is accessible.', 'wp-wikipedia-factcheck' ),
+			'message' => __( 'Connection successful! Authentication and article lookup both worked.', 'wp-wikipedia-factcheck' ),
 		),
 		200
 	);
+}
+
+/**
+ * Preserve the exact Wikimedia password while removing WordPress slashes.
+ *
+ * @param string $value Raw password value.
+ * @return string
+ */
+function wp_wikipedia_factcheck_sanitize_password( string $value ): string {
+	return wp_unslash( $value );
 }
 
 /**
@@ -224,7 +235,7 @@ function wp_wikipedia_factcheck_register_settings(): void {
 		'wikimedia_enterprise_password',
 		array(
 			'type'              => 'string',
-			'sanitize_callback' => 'sanitize_text_field',
+			'sanitize_callback' => 'wp_wikipedia_factcheck_sanitize_password',
 			'default'           => '',
 		)
 	);
