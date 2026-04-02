@@ -2,7 +2,7 @@
 /**
  * Plugin Name: WP Wikipedia Fact-Check
  * Description: Wikipedia-powered fact-check panel for the Gutenberg block editor using the Wikimedia Enterprise API.
- * Version: 1.0.1
+ * Version: 1.0.2
  * Requires at least: 6.4
  * Requires PHP: 8.1
  * Author: Ross Mulcahy
@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'WP_WIKIPEDIA_FACTCHECK_VERSION', '1.0.1' );
+define( 'WP_WIKIPEDIA_FACTCHECK_VERSION', '1.0.2' );
 define( 'WP_WIKIPEDIA_FACTCHECK_PATH', plugin_dir_path( __FILE__ ) );
 define( 'WP_WIKIPEDIA_FACTCHECK_URL', plugins_url( '/', __FILE__ ) );
 
@@ -33,12 +33,19 @@ function wp_wikipedia_factcheck_register_assets(): void {
 	}
 
 	$asset = include $asset_file;
+	$script_version = WP_WIKIPEDIA_FACTCHECK_VERSION . '-' . $asset['version'];
+	$style_file     = WP_WIKIPEDIA_FACTCHECK_PATH . 'build/index.css';
+	$style_version  = WP_WIKIPEDIA_FACTCHECK_VERSION;
+
+	if ( file_exists( $style_file ) ) {
+		$style_version .= '-' . filemtime( $style_file );
+	}
 
 	wp_register_script(
 		'wp-wikipedia-factcheck-editor',
 		WP_WIKIPEDIA_FACTCHECK_URL . 'build/index.js',
 		$asset['dependencies'],
-		$asset['version'],
+		$script_version,
 		true
 	);
 
@@ -46,7 +53,7 @@ function wp_wikipedia_factcheck_register_assets(): void {
 		'wp-wikipedia-factcheck-style',
 		WP_WIKIPEDIA_FACTCHECK_URL . 'build/index.css',
 		array(),
-		$asset['version']
+		$style_version
 	);
 
 	wp_localize_script(
