@@ -1,7 +1,7 @@
 === WP Wikipedia Fact-Check ===
 Contributors: rossmulcahy
 Tags: wikipedia, fact-check, gutenberg, research, editor
-Requires at least: 6.4
+Requires at least: 6.9
 Tested up to: 6.8
 Requires PHP: 8.1
 Stable tag: 1.0.16
@@ -34,7 +34,7 @@ Built on the [Wikimedia Enterprise API](https://enterprise.wikimedia.com/).
 **Requirements**
 
 * [Wikimedia Enterprise](https://enterprise.wikimedia.com/) API credentials.
-* For AI features: WordPress 7.0+ with the WordPress AI Client, or WordPress 6.9.x with the [AI Experiments plugin](https://wordpress.org/plugins/ai/) and at least one configured provider.
+* [AI](https://wordpress.org/plugins/ai/) plugin (declared as a required plugin dependency, installed automatically via WordPress).
 
 **Usage**
 
@@ -85,9 +85,9 @@ The credibility badge uses Wikimedia's revert risk score -- the probability that
 
 Sign up at [enterprise.wikimedia.com](https://enterprise.wikimedia.com/). The On-demand API provides authenticated access to Wikipedia article data.
 
-= Do I need the AI features? =
+= Do I need the AI plugin? =
 
-No. The core Wikipedia lookup, credibility badge, and article summary features work without AI. The AI-powered topic suggestions and research briefings require the WordPress AI Client or AI Experiments plugin with at least one configured provider.
+The [AI](https://wordpress.org/plugins/ai/) plugin is listed as a required dependency and WordPress will prompt you to install it. The core Wikipedia lookup, credibility badge, and article summaries work without it, but the AI-powered topic suggestions and research briefings require the AI plugin with at least one configured provider.
 
 = Which AI providers are supported? =
 
