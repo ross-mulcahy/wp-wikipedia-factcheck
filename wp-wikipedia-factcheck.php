@@ -2,7 +2,7 @@
 /**
  * Plugin Name: WP Wikipedia Fact-Check
  * Description: Wikipedia-powered fact-check panel for the Gutenberg block editor using the Wikimedia Enterprise API.
- * Version: 1.0.9
+ * Version: 1.0.10
  * Requires at least: 6.4
  * Requires PHP: 8.1
  * Author: Ross Mulcahy
@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'WP_WIKIPEDIA_FACTCHECK_VERSION', '1.0.9' );
+define( 'WP_WIKIPEDIA_FACTCHECK_VERSION', '1.0.10' );
 define( 'WP_WIKIPEDIA_FACTCHECK_PATH', plugin_dir_path( __FILE__ ) );
 define( 'WP_WIKIPEDIA_FACTCHECK_URL', plugins_url( '/', __FILE__ ) );
 
@@ -186,6 +186,18 @@ function wp_wikipedia_factcheck_register_routes(): void {
 					'sanitize_callback' => 'sanitize_text_field',
 				),
 			),
+		)
+	);
+
+	register_rest_route(
+		'wp-wikipedia-factcheck/v1',
+		'/ai-health',
+		array(
+			'methods'             => 'POST',
+			'callback'            => 'wp_wikipedia_factcheck_ai_health',
+			'permission_callback' => function () {
+				return current_user_can( 'manage_options' );
+			},
 		)
 	);
 }
@@ -374,6 +386,13 @@ function wp_wikipedia_factcheck_generate_facts( WP_REST_Request $request ): WP_R
 			500
 		);
 	}
+}
+
+/**
+ * Return AI client debug information for administrators.
+ */
+function wp_wikipedia_factcheck_ai_health(): WP_REST_Response {
+	return new WP_REST_Response( Wikimedia_Factcheck_AI::health_check(), 200 );
 }
 
 /**
