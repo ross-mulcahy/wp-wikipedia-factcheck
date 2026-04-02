@@ -152,7 +152,6 @@ export default function ResultPanel( {
 	result,
 	searchedTerm,
 	selectedText,
-	aiAvailable,
 	analysis,
 	analysisError,
 	analyzing,
@@ -250,13 +249,10 @@ export default function ResultPanel( {
 
 			<div className="wp-wikipedia-factcheck-section">
 				<h4>{ __( 'AI Claim Check', 'wp-wikipedia-factcheck' ) }</h4>
-				{ ! aiAvailable && (
-					<p>{ __( 'Enable a provider through the WordPress AI Client to compare selected draft text against this Wikipedia summary.', 'wp-wikipedia-factcheck' ) }</p>
-				) }
-				{ aiAvailable && ! selectedText && (
+				{ ! selectedText && (
 					<p>{ __( 'Select a sentence or paragraph in the editor, then run an AI claim check to spot likely mismatches in names, dates, numbers, or core assertions.', 'wp-wikipedia-factcheck' ) }</p>
 				) }
-				{ aiAvailable && selectedText && (
+				{ selectedText && (
 					<>
 						<p className="wp-wikipedia-factcheck-selection-preview">
 							<strong>{ __( 'Selected draft text:', 'wp-wikipedia-factcheck' ) }</strong>{ ' ' }

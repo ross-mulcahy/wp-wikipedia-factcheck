@@ -14,7 +14,7 @@ import { requestWikipediaFactcheck } from '../api';
 import SearchPanel from './SearchPanel';
 import ResultPanel from './ResultPanel';
 
-const { hasCredentials, settingsUrl, aiAvailable } = window.wpWikipediaFactcheck || {};
+const { hasCredentials, settingsUrl } = window.wpWikipediaFactcheck || {};
 
 function getSelectedEditorText( select ) {
 	const { getSelectionStart, getSelectionEnd, getBlock } = select( 'core/block-editor' );
@@ -136,7 +136,6 @@ export default function FactCheckSidebar() {
 						result={ result }
 						searchedTerm={ searchedTerm }
 						selectedText={ selectedText }
-						aiAvailable={ aiAvailable }
 						analysis={ analysis }
 						analysisError={ analysisError }
 						analyzing={ analyzing }
