@@ -179,53 +179,57 @@ export default function ResultPanel( {
 
 	return (
 		<div className="wp-wikipedia-factcheck-result">
-			<div className="wp-wikipedia-factcheck-signal-card">
-				<span className={ `wp-wikipedia-factcheck-signal-card__eyebrow wp-wikipedia-factcheck-signal-card__eyebrow--${ signalSummary.tone }` }>
-					{ signalSummary.title }
-				</span>
-				<p>{ signalSummary.body }</p>
-			</div>
-
-			<div className="wp-wikipedia-factcheck-result-header">
-				<div className="wp-wikipedia-factcheck-result-header__main">
-					<h3>{ result.name }</h3>
-					<div className="wp-wikipedia-factcheck-result-links">
-						<ExternalLink href={ result.url }>
-							{ __( 'Open article', 'wp-wikipedia-factcheck' ) }
-						</ExternalLink>
-						{ result.wikidata_qid && result.wikidata_url && (
-							<ExternalLink href={ result.wikidata_url }>
-								{ sprintf( __( 'Wikidata %s', 'wp-wikipedia-factcheck' ), result.wikidata_qid ) }
-							</ExternalLink>
-						) }
-					</div>
-				</div>
-				<CredibilityBadge revertRisk={ result.revert_risk } />
-			</div>
-
-			<div className="wp-wikipedia-factcheck-metrics">
-				<div className="wp-wikipedia-factcheck-metric">
-					<span className="wp-wikipedia-factcheck-metric__label">{ __( 'Freshness', 'wp-wikipedia-factcheck' ) }</span>
-					<strong>{ getFreshnessLabel( result.date_modified ) }</strong>
-					{ result.date_modified && <span>{ relativeDate( result.date_modified ) }</span> }
-				</div>
-				<div className="wp-wikipedia-factcheck-metric">
-					<span className="wp-wikipedia-factcheck-metric__label">{ __( 'Article type', 'wp-wikipedia-factcheck' ) }</span>
-					<strong>{ warnings.length > 0 ? __( 'Needs closer review', 'wp-wikipedia-factcheck' ) : __( 'General reference', 'wp-wikipedia-factcheck' ) }</strong>
-					<span>{ __( 'Use as a starting point, not a final source.', 'wp-wikipedia-factcheck' ) }</span>
-				</div>
-			</div>
-
-			{ result.image?.content_url && (
-				<div className="wp-wikipedia-factcheck-image">
-					<a href={ result.url } target="_blank" rel="noopener noreferrer">
+			<div className="wp-wikipedia-factcheck-hero">
+				<div className="wp-wikipedia-factcheck-hero__media">
+					{ result.image?.content_url ? (
 						<img
 							src={ result.image.content_url }
 							alt={ result.name }
+							className="wp-wikipedia-factcheck-hero__image"
 						/>
-					</a>
+					) : (
+						<div className="wp-wikipedia-factcheck-hero__image wp-wikipedia-factcheck-hero__image--fallback" />
+					) }
+					<div className="wp-wikipedia-factcheck-hero__overlay" />
 				</div>
-			) }
+
+				<div className="wp-wikipedia-factcheck-hero__body">
+					<div className="wp-wikipedia-factcheck-hero__topline">
+						<span className={ `wp-wikipedia-factcheck-signal-card__eyebrow wp-wikipedia-factcheck-signal-card__eyebrow--${ signalSummary.tone }` }>
+							{ signalSummary.title }
+						</span>
+						<CredibilityBadge revertRisk={ result.revert_risk } />
+					</div>
+
+					<div className="wp-wikipedia-factcheck-result-header__main">
+						<h3>{ result.name }</h3>
+						<p className="wp-wikipedia-factcheck-hero__summary">{ signalSummary.body }</p>
+						<div className="wp-wikipedia-factcheck-result-links">
+							<ExternalLink href={ result.url }>
+								{ __( 'Open article', 'wp-wikipedia-factcheck' ) }
+							</ExternalLink>
+							{ result.wikidata_qid && result.wikidata_url && (
+								<ExternalLink href={ result.wikidata_url }>
+									{ sprintf( __( 'Wikidata %s', 'wp-wikipedia-factcheck' ), result.wikidata_qid ) }
+								</ExternalLink>
+							) }
+						</div>
+					</div>
+
+					<div className="wp-wikipedia-factcheck-metrics">
+						<div className="wp-wikipedia-factcheck-metric">
+							<span className="wp-wikipedia-factcheck-metric__label">{ __( 'Freshness', 'wp-wikipedia-factcheck' ) }</span>
+							<strong>{ getFreshnessLabel( result.date_modified ) }</strong>
+							{ result.date_modified && <span>{ relativeDate( result.date_modified ) }</span> }
+						</div>
+						<div className="wp-wikipedia-factcheck-metric">
+							<span className="wp-wikipedia-factcheck-metric__label">{ __( 'Use case', 'wp-wikipedia-factcheck' ) }</span>
+							<strong>{ warnings.length > 0 ? __( 'Needs closer review', 'wp-wikipedia-factcheck' ) : __( 'Good first-source check', 'wp-wikipedia-factcheck' ) }</strong>
+							<span>{ __( 'Use as a starting point, not a final source.', 'wp-wikipedia-factcheck' ) }</span>
+						</div>
+					</div>
+				</div>
+			</div>
 
 			{ quickSummary && (
 				<div className="wp-wikipedia-factcheck-section">
