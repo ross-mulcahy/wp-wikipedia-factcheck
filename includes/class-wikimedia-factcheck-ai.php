@@ -12,6 +12,19 @@ if ( ! defined( 'ABSPATH' ) ) {
 class Wikimedia_Factcheck_AI {
 
 	/**
+	 * Ordered provider/model preferences for text generation fallback.
+	 *
+	 * @return array<int, array{0:string,1:string}>
+	 */
+	private static function get_text_model_preferences(): array {
+		return array(
+			array( 'openai', 'gpt-5.1' ),
+			array( 'google', 'gemini-3-pro-preview' ),
+			array( 'anthropic', 'claude-sonnet-4-5' ),
+		);
+	}
+
+	/**
 	 * Write a debug line for AI fact-check operations.
 	 *
 	 * @param string $event   Event label.
@@ -27,6 +40,171 @@ class Wikimedia_Factcheck_AI {
 		);
 
 		error_log( 'WP Wikipedia Fact-Check AI: ' . wp_json_encode( $payload ) );
+	}
+
+	/**
+	 * Configure a prompt builder with shared settings.
+	 *
+	 * @param object      $builder Prompt builder.
+	 * @param string      $system_instruction System instruction.
+	 * @param float       $temperature Temperature.
+	 * @param array|null  $schema Optional JSON schema.
+	 * @param array|null  $single_preference Optional single provider/model pair.
+	 * @return object
+	 */
+	private static function configure_builder(
+		object $builder,
+		string $system_instruction,
+		float $temperature,
+		?array $schema = null,
+		?array $single_preference = null
+	): object {
+		$builder = $builder
+			->using_system_instruction( $system_instruction )
+			->using_temperature( $temperature );
+
+		if ( null !== $schema ) {
+			$builder = $builder->as_json_response( $schema );
+		}
+
+		if ( method_exists( $builder, 'using_model_preference' ) ) {
+			if ( null !== $single_preference ) {
+				$builder = $builder->using_model_preference( $single_preference );
+			} else {
+				$builder = $builder->using_model_preference( ...self::get_text_model_preferences() );
+			}
+		}
+
+		return $builder;
+	}
+
+	/**
+	 * Determine whether an error looks provider-specific and worth retrying elsewhere.
+	 *
+	 * @param WP_Error $error Error to inspect.
+	 * @return bool
+	 */
+	private static function should_retry_provider_error( WP_Error $error ): bool {
+		$message = strtolower( $error->get_error_message() );
+
+		return str_contains( $message, 'credit balance' )
+			|| str_contains( $message, 'quota' )
+			|| str_contains( $message, 'rate limit' )
+			|| str_contains( $message, 'rate-limit' )
+			|| str_contains( $message, 'billing' )
+			|| str_contains( $message, 'insufficient' )
+			|| str_contains( $message, 'provider' );
+	}
+
+	/**
+	 * Generate text with provider fallback.
+	 *
+	 * @param string     $prompt Prompt text.
+	 * @param string     $system_instruction System instruction.
+	 * @param float      $temperature Temperature.
+	 * @param array|null $schema Optional JSON schema.
+	 * @param string     $context Context label for logging.
+	 * @return string|WP_Error
+	 */
+	private static function generate_text_with_fallback(
+		string $prompt,
+		string $system_instruction,
+		float $temperature,
+		?array $schema,
+		string $context
+	): string|WP_Error {
+		$preferences = self::get_text_model_preferences();
+		$last_error  = null;
+
+		foreach ( $preferences as $preference ) {
+			$builder = self::get_prompt_builder( $prompt );
+			if ( is_wp_error( $builder ) ) {
+				self::log_debug(
+					$context . ':builder_error',
+					array(
+						'code'       => $builder->get_error_code(),
+						'message'    => $builder->get_error_message(),
+						'provider'   => $preference[0],
+						'model'      => $preference[1],
+					)
+				);
+				return $builder;
+			}
+
+			if ( method_exists( $builder, 'is_supported_for_text_generation' ) && ! $builder->is_supported_for_text_generation() ) {
+				self::log_debug(
+					$context . ':unsupported_generation',
+					array(
+						'provider' => $preference[0],
+						'model'    => $preference[1],
+					)
+				);
+				$last_error = new WP_Error(
+					'ai_unsupported',
+					__( 'AI text generation is not currently supported by the configured providers on this site.', 'wp-wikipedia-factcheck' ),
+					array( 'status' => 501 )
+				);
+				continue;
+			}
+
+			$builder = self::configure_builder( $builder, $system_instruction, $temperature, $schema, $preference );
+			self::log_debug(
+				$context . ':configured_builder',
+				array(
+					'provider' => $preference[0],
+					'model'    => $preference[1],
+				)
+			);
+
+			$result = $builder->generate_text();
+
+			self::log_debug(
+				$context . ':generate_text_complete',
+				array(
+					'is_wp_error' => is_wp_error( $result ),
+					'provider'    => $preference[0],
+					'model'       => $preference[1],
+				)
+			);
+
+			if ( is_wp_error( $result ) ) {
+				self::log_debug(
+					$context . ':generate_text_error',
+					array(
+						'code'     => $result->get_error_code(),
+						'message'  => $result->get_error_message(),
+						'provider' => $preference[0],
+						'model'    => $preference[1],
+					)
+				);
+				$last_error = new WP_Error(
+					$result->get_error_code(),
+					sprintf(
+						/* translators: 1: provider name, 2: provider error */
+						__( '%1$s failed: %2$s', 'wp-wikipedia-factcheck' ),
+						ucfirst( $preference[0] ),
+						$result->get_error_message()
+					),
+					$result->get_error_data()
+				);
+
+				if ( self::should_retry_provider_error( $result ) ) {
+					continue;
+				}
+
+				return $last_error;
+			}
+
+			return $result;
+		}
+
+		return $last_error instanceof WP_Error
+			? $last_error
+			: new WP_Error(
+				'ai_generation_failed',
+				__( 'All configured AI providers failed to generate a response.', 'wp-wikipedia-factcheck' ),
+				array( 'status' => 502 )
+			);
 	}
 
 	/**
@@ -138,6 +316,7 @@ class Wikimedia_Factcheck_AI {
 			'error_code'        => is_wp_error( $builder ) ? $builder->get_error_code() : null,
 			'error_message'     => is_wp_error( $builder ) ? $builder->get_error_message() : null,
 			'methods'           => is_object( $builder ) ? get_class_methods( $builder ) : array(),
+			'text_model_preferences' => self::get_text_model_preferences(),
 		);
 
 		if ( is_object( $builder ) && method_exists( $builder, 'is_supported_for_text_generation' ) ) {
@@ -209,54 +388,15 @@ class Wikimedia_Factcheck_AI {
 			$article['date_modified'] ?? ''
 		);
 
-		$builder = self::get_prompt_builder( $prompt );
-		if ( is_wp_error( $builder ) ) {
-			self::log_debug(
-				'analyze_claim:builder_error',
-				array(
-					'code'    => $builder->get_error_code(),
-					'message' => $builder->get_error_message(),
-				)
-			);
-			return $builder;
-		}
-
-		if ( method_exists( $builder, 'is_supported_for_text_generation' ) && ! $builder->is_supported_for_text_generation() ) {
-			self::log_debug( 'analyze_claim:unsupported_generation' );
-			return new WP_Error(
-				'ai_unsupported',
-				__( 'AI text generation is not currently supported by the configured providers on this site.', 'wp-wikipedia-factcheck' ),
-				array( 'status' => 501 )
-			);
-		}
-
-		$builder = $builder
-			->using_system_instruction( 'You are a careful fact-checking assistant for WordPress editors. Be conservative, cite only the provided article summary, and do not infer unsupported details.' )
-			->using_temperature( 0.1 )
-			->as_json_response( $schema );
-		self::log_debug( 'analyze_claim:configured_builder' );
-
-		if ( function_exists( 'wp_ai_client_prompt' ) && method_exists( $builder, 'using_model_preference' ) ) {
-			$builder = $builder->using_model_preference( 'gpt-5.4', 'claude-sonnet-4-6', 'gemini-3.1-pro-preview' );
-			self::log_debug( 'analyze_claim:applied_model_preference' );
-		}
-
-		$json = $builder->generate_text();
-		self::log_debug(
-			'analyze_claim:generate_text_complete',
-			array(
-				'is_wp_error' => is_wp_error( $json ),
-			)
+		$json = self::generate_text_with_fallback(
+			$prompt,
+			'You are a careful fact-checking assistant for WordPress editors. Be conservative, cite only the provided article summary, and do not infer unsupported details.',
+			0.1,
+			$schema,
+			'analyze_claim'
 		);
 
 		if ( is_wp_error( $json ) ) {
-			self::log_debug(
-				'analyze_claim:generate_text_error',
-				array(
-					'code'    => $json->get_error_code(),
-					'message' => $json->get_error_message(),
-				)
-			);
 			return $json;
 		}
 
@@ -318,54 +458,15 @@ class Wikimedia_Factcheck_AI {
 			implode( ', ', $article['categories'] ?? array() )
 		);
 
-		$builder = self::get_prompt_builder( $prompt );
-		if ( is_wp_error( $builder ) ) {
-			self::log_debug(
-				'generate_interesting_facts:builder_error',
-				array(
-					'code'    => $builder->get_error_code(),
-					'message' => $builder->get_error_message(),
-				)
-			);
-			return $builder;
-		}
-
-		if ( method_exists( $builder, 'is_supported_for_text_generation' ) && ! $builder->is_supported_for_text_generation() ) {
-			self::log_debug( 'generate_interesting_facts:unsupported_generation' );
-			return new WP_Error(
-				'ai_unsupported',
-				__( 'AI text generation is not currently supported by the configured providers on this site.', 'wp-wikipedia-factcheck' ),
-				array( 'status' => 501 )
-			);
-		}
-
-		$builder = $builder
-			->using_system_instruction( 'You write concise factual callouts for editors. Use only the provided Wikipedia material, avoid speculation, and prefer specific concrete facts over generic summaries.' )
-			->using_temperature( 0.4 )
-			->as_json_response( $schema );
-		self::log_debug( 'generate_interesting_facts:configured_builder' );
-
-		if ( function_exists( 'wp_ai_client_prompt' ) && method_exists( $builder, 'using_model_preference' ) ) {
-			$builder = $builder->using_model_preference( 'gpt-5.4', 'claude-sonnet-4-6', 'gemini-3.1-pro-preview' );
-			self::log_debug( 'generate_interesting_facts:applied_model_preference' );
-		}
-
-		$json = $builder->generate_text();
-		self::log_debug(
-			'generate_interesting_facts:generate_text_complete',
-			array(
-				'is_wp_error' => is_wp_error( $json ),
-			)
+		$json = self::generate_text_with_fallback(
+			$prompt,
+			'You write concise factual callouts for editors. Use only the provided Wikipedia material, avoid speculation, and prefer specific concrete facts over generic summaries.',
+			0.4,
+			$schema,
+			'generate_interesting_facts'
 		);
 
 		if ( is_wp_error( $json ) ) {
-			self::log_debug(
-				'generate_interesting_facts:generate_text_error',
-				array(
-					'code'    => $json->get_error_code(),
-					'message' => $json->get_error_message(),
-				)
-			);
 			return $json;
 		}
 
