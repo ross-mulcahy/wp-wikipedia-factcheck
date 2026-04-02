@@ -2,7 +2,7 @@
 /**
  * Plugin Name: WP Wikipedia Fact-Check
  * Description: Wikipedia-powered fact-check panel for the Gutenberg block editor using the Wikimedia Enterprise API.
- * Version: 1.0.15
+ * Version: 1.0.16
  * Requires at least: 6.4
  * Requires PHP: 8.1
  * Author: Ross Mulcahy
@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'WP_WIKIPEDIA_FACTCHECK_VERSION', '1.0.15' );
+define( 'WP_WIKIPEDIA_FACTCHECK_VERSION', '1.0.16' );
 define( 'WP_WIKIPEDIA_FACTCHECK_PATH', plugin_dir_path( __FILE__ ) );
 define( 'WP_WIKIPEDIA_FACTCHECK_URL', plugins_url( '/', __FILE__ ) );
 

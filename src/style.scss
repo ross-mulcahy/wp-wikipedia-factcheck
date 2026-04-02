@@ -220,11 +220,55 @@
 	color: #fff;
 }
 
-.wp-wikipedia-factcheck-hero__badges {
+.wp-wikipedia-factcheck-hero__status {
+	display: grid;
+	grid-template-columns: minmax( 0, 1.6fr ) minmax( 112px, 0.9fr );
+	gap: 10px;
+	align-items: stretch;
+}
+
+.wp-wikipedia-factcheck-status-card {
 	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
-	gap: var( --wp-wikipedia-factcheck-space-1 );
+	flex-direction: column;
+	justify-content: center;
+	gap: 6px;
+	min-width: 0;
+	padding: 10px 12px;
+	border-radius: 12px;
+	border: 1px solid rgba( 255, 255, 255, 0.1 );
+	background: rgba( 255, 255, 255, 0.07 );
+
+	strong {
+		display: block;
+		font-size: 12px;
+		line-height: 1.4;
+		color: #fff;
+		overflow-wrap: anywhere;
+	}
+
+	&--good {
+		background: rgba( 72, 135, 161, 0.14 );
+		border-color: rgba( 122, 185, 211, 0.18 );
+	}
+
+	&--watch,
+	&--caution {
+		background: rgba( 166, 119, 84, 0.14 );
+		border-color: rgba( 232, 201, 175, 0.16 );
+	}
+
+	&--credibility {
+		align-items: flex-start;
+	}
+}
+
+.wp-wikipedia-factcheck-status-card__label {
+	display: inline-flex;
+	font-size: 9px;
+	font-weight: 700;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: rgba( 255, 255, 255, 0.62 );
 }
 
 .wp-wikipedia-factcheck-result-header__main {
@@ -232,7 +276,7 @@
 	overflow-wrap: anywhere;
 
 	h3 {
-		margin: 0 0 10px;
+		margin: 0 0 8px;
 		font-size: 17px;
 		line-height: 1.15;
 		letter-spacing: -0.02em;
@@ -256,6 +300,7 @@
 	gap: 8px 12px;
 	font-size: 11px;
 	line-height: 1.5;
+	padding-top: 2px;
 
 	a {
 		color: #eef7fb !important;
@@ -268,7 +313,7 @@
 	display: flex;
 	flex-direction: column;
 	gap: 10px;
-	margin-top: 2px;
+	margin-top: 4px;
 }
 
 .wp-wikipedia-factcheck-metric {
@@ -306,6 +351,7 @@
 	text-transform: uppercase;
 	letter-spacing: 0.08em;
 	color: rgba( 255, 255, 255, 0.64 );
+	white-space: nowrap;
 	word-break: normal;
 	overflow-wrap: normal;
 }
@@ -428,7 +474,7 @@
 .wp-wikipedia-factcheck-badge {
 	display: inline-flex;
 	align-items: center;
-	padding: 5px 10px;
+	padding: 4px 9px;
 	font-size: 10px;
 	font-weight: 700;
 	border-radius: 999px;
@@ -455,6 +501,12 @@
 	&--red {
 		background: rgba( 247, 224, 224, 0.98 );
 		color: #8e3f3f;
+	}
+}
+
+@media ( max-width: 360px ) {
+	.wp-wikipedia-factcheck-hero__status {
+		grid-template-columns: minmax( 0, 1fr );
 	}
 }
 

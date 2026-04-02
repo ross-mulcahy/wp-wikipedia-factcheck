@@ -170,11 +170,19 @@ export default function ResultPanel( {
 				</div>
 
 				<div className="wp-wikipedia-factcheck-hero__body">
-					<div className="wp-wikipedia-factcheck-hero__badges">
-						<span className={ `wp-wikipedia-factcheck-signal-card__eyebrow wp-wikipedia-factcheck-signal-card__eyebrow--${ signalSummary.tone }` }>
-							{ signalSummary.title }
-						</span>
-						<CredibilityBadge revertRisk={ result.revert_risk } />
+					<div className="wp-wikipedia-factcheck-hero__status">
+						<div className={ `wp-wikipedia-factcheck-status-card wp-wikipedia-factcheck-status-card--${ signalSummary.tone }` }>
+							<span className="wp-wikipedia-factcheck-status-card__label">
+								{ __( 'Signal', 'wp-wikipedia-factcheck' ) }
+							</span>
+							<strong>{ signalSummary.title }</strong>
+						</div>
+						<div className="wp-wikipedia-factcheck-status-card wp-wikipedia-factcheck-status-card--credibility">
+							<span className="wp-wikipedia-factcheck-status-card__label">
+								{ __( 'Credibility', 'wp-wikipedia-factcheck' ) }
+							</span>
+							<CredibilityBadge revertRisk={ result.revert_risk } />
+						</div>
 					</div>
 
 					<div className="wp-wikipedia-factcheck-result-header__main">
