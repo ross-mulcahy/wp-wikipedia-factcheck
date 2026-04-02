@@ -1,11 +1,13 @@
 <?php
 /**
  * Plugin Name: WP Wikipedia Fact-Check
+ * Plugin URI:  https://github.com/developer-developer/wp-wikipedia-factcheck
  * Description: Wikipedia-powered fact-check panel for the Gutenberg block editor using the Wikimedia Enterprise API.
  * Version: 1.0.16
  * Requires at least: 6.4
  * Requires PHP: 8.1
  * Author: Ross Mulcahy
+ * Author URI:  https://developer-developer.com
  * License: GPL-2.0-or-later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain: wp-wikipedia-factcheck
@@ -82,8 +84,8 @@ add_action( 'enqueue_block_editor_assets', 'wp_wikipedia_factcheck_enqueue_edito
  * Check if Wikimedia credentials are configured.
  */
 function wp_wikipedia_factcheck_has_credentials(): bool {
-	$username = get_option( 'wikimedia_enterprise_username' );
-	$password = get_option( 'wikimedia_enterprise_password' );
+	$username = get_option( 'wp_wikipedia_factcheck_username' );
+	$password = get_option( 'wp_wikipedia_factcheck_password' );
 	return ! empty( $username ) && ! empty( $password );
 }
 
@@ -231,17 +233,17 @@ add_action( 'rest_api_init', 'wp_wikipedia_factcheck_register_routes' );
  */
 function wp_wikipedia_factcheck_lookup( WP_REST_Request $request ): WP_REST_Response {
 	$term     = trim( $request->get_param( 'term' ) );
-	$language = get_option( 'wikimedia_enterprise_language', 'en' );
+	$language = get_option( 'wp_wikipedia_factcheck_language', 'en' );
 
 	// Check cache first.
-	$cache_key = 'wikimedia_fc_v2_' . md5( $term . '_' . $language );
+	$cache_key = 'wpwfc_lookup_' . md5( $term . '_' . $language );
 	$cached    = get_transient( $cache_key );
 
 	if ( false !== $cached ) {
 		return new WP_REST_Response( $cached, 200 );
 	}
 
-	$api    = new Wikimedia_API();
+	$api    = new WP_Wikipedia_Factcheck_API();
 	$result = $api->lookup( $term, $language );
 
 	if ( is_wp_error( $result ) ) {
@@ -284,8 +286,8 @@ function wp_wikipedia_factcheck_lookup( WP_REST_Request $request ): WP_REST_Resp
  * Handle test connection requests.
  */
 function wp_wikipedia_factcheck_test_connection(): WP_REST_Response {
-	$language = get_option( 'wikimedia_enterprise_language', 'en' );
-	$api      = new Wikimedia_API();
+	$language = get_option( 'wp_wikipedia_factcheck_language', 'en' );
+	$api      = new WP_Wikipedia_Factcheck_API();
 	$result   = $api->lookup( 'Main_Page', $language );
 
 	if ( is_wp_error( $result ) ) {
@@ -314,7 +316,7 @@ function wp_wikipedia_factcheck_analyze_selection( WP_REST_Request $request ): W
 	try {
 		$term          = trim( (string) $request->get_param( 'term' ) );
 		$selected_text = trim( wp_strip_all_tags( (string) $request->get_param( 'selected_text' ) ) );
-		$language      = get_option( 'wikimedia_enterprise_language', 'en' );
+		$language      = get_option( 'wp_wikipedia_factcheck_language', 'en' );
 
 		if ( '' === $selected_text ) {
 			return new WP_REST_Response(
@@ -326,7 +328,7 @@ function wp_wikipedia_factcheck_analyze_selection( WP_REST_Request $request ): W
 			);
 		}
 
-		$api     = new Wikimedia_API();
+		$api     = new WP_Wikipedia_Factcheck_API();
 		$article = $api->lookup( $term, $language );
 
 		if ( is_wp_error( $article ) ) {
@@ -339,7 +341,7 @@ function wp_wikipedia_factcheck_analyze_selection( WP_REST_Request $request ): W
 			);
 		}
 
-		$analysis = Wikimedia_Factcheck_AI::analyze_claim( $selected_text, $article );
+		$analysis = WP_Wikipedia_Factcheck_AI::analyze_claim( $selected_text, $article );
 		if ( is_wp_error( $analysis ) ) {
 			return new WP_REST_Response(
 				array(
@@ -352,10 +354,11 @@ function wp_wikipedia_factcheck_analyze_selection( WP_REST_Request $request ): W
 
 		return new WP_REST_Response( $analysis, 200 );
 	} catch ( Throwable $exception ) {
+		wp_wikipedia_factcheck_log_error( 'analysis_failed', $exception );
 		return new WP_REST_Response(
 			array(
 				'code'    => 'analysis_failed',
-				'message' => $exception->getMessage(),
+				'message' => __( 'An unexpected error occurred during analysis.', 'wp-wikipedia-factcheck' ),
 			),
 			500
 		);
@@ -368,8 +371,8 @@ function wp_wikipedia_factcheck_analyze_selection( WP_REST_Request $request ): W
 function wp_wikipedia_factcheck_generate_facts( WP_REST_Request $request ): WP_REST_Response {
 	try {
 		$term     = trim( (string) $request->get_param( 'term' ) );
-		$language = get_option( 'wikimedia_enterprise_language', 'en' );
-		$api      = new Wikimedia_API();
+		$language = get_option( 'wp_wikipedia_factcheck_language', 'en' );
+		$api      = new WP_Wikipedia_Factcheck_API();
 		$article  = $api->lookup( $term, $language );
 
 		if ( is_wp_error( $article ) ) {
@@ -382,7 +385,7 @@ function wp_wikipedia_factcheck_generate_facts( WP_REST_Request $request ): WP_R
 			);
 		}
 
-		$facts = Wikimedia_Factcheck_AI::generate_interesting_facts( $article );
+		$facts = WP_Wikipedia_Factcheck_AI::generate_interesting_facts( $article );
 		if ( is_wp_error( $facts ) ) {
 			return new WP_REST_Response(
 				array(
@@ -401,10 +404,11 @@ function wp_wikipedia_factcheck_generate_facts( WP_REST_Request $request ): WP_R
 			200
 		);
 	} catch ( Throwable $exception ) {
+		wp_wikipedia_factcheck_log_error( 'interesting_facts_failed', $exception );
 		return new WP_REST_Response(
 			array(
 				'code'    => 'interesting_facts_failed',
-				'message' => $exception->getMessage(),
+				'message' => __( 'An unexpected error occurred while generating facts.', 'wp-wikipedia-factcheck' ),
 			),
 			500
 		);
@@ -419,7 +423,7 @@ function wp_wikipedia_factcheck_suggest_topics( WP_REST_Request $request ): WP_R
 		$content = trim( wp_strip_all_tags( (string) $request->get_param( 'content' ) ) );
 		$content = mb_substr( preg_replace( '/\s+/', ' ', $content ), 0, 6000 );
 
-		$suggestions = Wikimedia_Factcheck_AI::suggest_topics_from_content( $content );
+		$suggestions = WP_Wikipedia_Factcheck_AI::suggest_topics_from_content( $content );
 		if ( is_wp_error( $suggestions ) ) {
 			return new WP_REST_Response(
 				array(
@@ -437,10 +441,11 @@ function wp_wikipedia_factcheck_suggest_topics( WP_REST_Request $request ): WP_R
 			200
 		);
 	} catch ( Throwable $exception ) {
+		wp_wikipedia_factcheck_log_error( 'suggest_topics_failed', $exception );
 		return new WP_REST_Response(
 			array(
 				'code'    => 'suggest_topics_failed',
-				'message' => $exception->getMessage(),
+				'message' => __( 'An unexpected error occurred while suggesting topics.', 'wp-wikipedia-factcheck' ),
 			),
 			500
 		);
@@ -455,8 +460,8 @@ function wp_wikipedia_factcheck_generate_briefing( WP_REST_Request $request ): W
 		$term     = trim( (string) $request->get_param( 'term' ) );
 		$content  = trim( wp_strip_all_tags( (string) $request->get_param( 'content' ) ) );
 		$content  = mb_substr( preg_replace( '/\s+/', ' ', $content ), 0, 6000 );
-		$language = get_option( 'wikimedia_enterprise_language', 'en' );
-		$api      = new Wikimedia_API();
+		$language = get_option( 'wp_wikipedia_factcheck_language', 'en' );
+		$api      = new WP_Wikipedia_Factcheck_API();
 		$article  = $api->lookup( $term, $language );
 
 		if ( is_wp_error( $article ) ) {
@@ -469,7 +474,7 @@ function wp_wikipedia_factcheck_generate_briefing( WP_REST_Request $request ): W
 			);
 		}
 
-		$briefing = Wikimedia_Factcheck_AI::generate_article_briefing( $article, $content );
+		$briefing = WP_Wikipedia_Factcheck_AI::generate_article_briefing( $article, $content );
 		if ( is_wp_error( $briefing ) ) {
 			return new WP_REST_Response(
 				array(
@@ -488,10 +493,11 @@ function wp_wikipedia_factcheck_generate_briefing( WP_REST_Request $request ): W
 			200
 		);
 	} catch ( Throwable $exception ) {
+		wp_wikipedia_factcheck_log_error( 'briefing_failed', $exception );
 		return new WP_REST_Response(
 			array(
 				'code'    => 'briefing_failed',
-				'message' => $exception->getMessage(),
+				'message' => __( 'An unexpected error occurred while generating the briefing.', 'wp-wikipedia-factcheck' ),
 			),
 			500
 		);
@@ -502,17 +508,95 @@ function wp_wikipedia_factcheck_generate_briefing( WP_REST_Request $request ): W
  * Return AI client debug information for administrators.
  */
 function wp_wikipedia_factcheck_ai_health(): WP_REST_Response {
-	return new WP_REST_Response( Wikimedia_Factcheck_AI::health_check(), 200 );
+	return new WP_REST_Response( WP_Wikipedia_Factcheck_AI::health_check(), 200 );
 }
 
 /**
- * Preserve the exact Wikimedia password while removing WordPress slashes.
+ * Get supported Wikipedia languages.
+ *
+ * @return array<string,string> Language code => label.
+ */
+function wp_wikipedia_factcheck_get_supported_languages(): array {
+	return array(
+		'en' => 'English',
+		'de' => 'Deutsch',
+		'fr' => 'Français',
+		'es' => 'Español',
+		'it' => 'Italiano',
+		'pt' => 'Português',
+		'ja' => '日本語',
+		'zh' => '中文',
+	);
+}
+
+/**
+ * Sanitize language setting against the allowlist.
+ *
+ * @param string $value Language code.
+ * @return string Validated language code or 'en'.
+ */
+function wp_wikipedia_factcheck_sanitize_language( string $value ): string {
+	$value     = sanitize_text_field( $value );
+	$languages = wp_wikipedia_factcheck_get_supported_languages();
+	return isset( $languages[ $value ] ) ? $value : 'en';
+}
+
+/**
+ * Encrypt the password before storing it.
+ *
+ * Uses wp_encrypt() when available (WP 6.8+), otherwise stores as-is.
  *
  * @param string $value Raw password value.
- * @return string
+ * @return string Encrypted (or plain) password.
  */
 function wp_wikipedia_factcheck_sanitize_password( string $value ): string {
-	return wp_unslash( $value );
+	$value = wp_unslash( $value );
+	if ( function_exists( 'wp_encrypt' ) ) {
+		$encrypted = wp_encrypt( $value, 'wp_wikipedia_factcheck' );
+		if ( ! is_wp_error( $encrypted ) ) {
+			return $encrypted;
+		}
+	}
+	return $value;
+}
+
+/**
+ * Decrypt the stored password for use.
+ *
+ * @param string $value Stored password value.
+ * @return string Decrypted password.
+ */
+function wp_wikipedia_factcheck_decrypt_password( string $value ): string {
+	if ( '' === $value ) {
+		return '';
+	}
+	if ( function_exists( 'wp_decrypt' ) ) {
+		$decrypted = wp_decrypt( $value, 'wp_wikipedia_factcheck' );
+		if ( ! is_wp_error( $decrypted ) ) {
+			return $decrypted;
+		}
+	}
+	return $value;
+}
+
+/**
+ * Log an error server-side when WP_DEBUG is enabled.
+ *
+ * @param string    $context   Short label for where the error happened.
+ * @param Throwable $exception The caught exception.
+ */
+function wp_wikipedia_factcheck_log_error( string $context, Throwable $exception ): void {
+	if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+		error_log( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+			sprintf(
+				'WP Wikipedia Fact-Check [%s]: %s in %s:%d',
+				$context,
+				$exception->getMessage(),
+				$exception->getFile(),
+				$exception->getLine()
+			)
+		);
+	}
 }
 
 /**
@@ -602,7 +686,7 @@ add_action( 'admin_menu', 'wp_wikipedia_factcheck_admin_menu' );
 function wp_wikipedia_factcheck_register_settings(): void {
 	register_setting(
 		'wp_wikipedia_factcheck_settings',
-		'wikimedia_enterprise_username',
+		'wp_wikipedia_factcheck_username',
 		array(
 			'type'              => 'string',
 			'sanitize_callback' => 'sanitize_text_field',
@@ -612,7 +696,7 @@ function wp_wikipedia_factcheck_register_settings(): void {
 
 	register_setting(
 		'wp_wikipedia_factcheck_settings',
-		'wikimedia_enterprise_password',
+		'wp_wikipedia_factcheck_password',
 		array(
 			'type'              => 'string',
 			'sanitize_callback' => 'wp_wikipedia_factcheck_sanitize_password',
@@ -622,10 +706,10 @@ function wp_wikipedia_factcheck_register_settings(): void {
 
 	register_setting(
 		'wp_wikipedia_factcheck_settings',
-		'wikimedia_enterprise_language',
+		'wp_wikipedia_factcheck_language',
 		array(
 			'type'              => 'string',
-			'sanitize_callback' => 'sanitize_text_field',
+			'sanitize_callback' => 'wp_wikipedia_factcheck_sanitize_language',
 			'default'           => 'en',
 		)
 	);
@@ -640,43 +724,34 @@ function wp_wikipedia_factcheck_register_settings(): void {
 	);
 
 	add_settings_field(
-		'wikimedia_enterprise_username',
+		'wp_wikipedia_factcheck_username',
 		__( 'Username', 'wp-wikipedia-factcheck' ),
 		function () {
-			$value = get_option( 'wikimedia_enterprise_username', '' );
-			echo '<input type="text" name="wikimedia_enterprise_username" value="' . esc_attr( $value ) . '" class="regular-text" autocomplete="off" />';
+			$value = get_option( 'wp_wikipedia_factcheck_username', '' );
+			echo '<input type="text" name="wp_wikipedia_factcheck_username" value="' . esc_attr( $value ) . '" class="regular-text" autocomplete="off" />';
 		},
 		'wp-wikipedia-factcheck',
 		'wp_wikipedia_factcheck_credentials'
 	);
 
 	add_settings_field(
-		'wikimedia_enterprise_password',
+		'wp_wikipedia_factcheck_password',
 		__( 'Password', 'wp-wikipedia-factcheck' ),
 		function () {
-			$value = get_option( 'wikimedia_enterprise_password', '' );
-			echo '<input type="password" name="wikimedia_enterprise_password" value="' . esc_attr( $value ) . '" class="regular-text" autocomplete="off" />';
+			$value = wp_wikipedia_factcheck_decrypt_password( get_option( 'wp_wikipedia_factcheck_password', '' ) );
+			echo '<input type="password" name="wp_wikipedia_factcheck_password" value="' . esc_attr( $value ) . '" class="regular-text" autocomplete="off" />';
 		},
 		'wp-wikipedia-factcheck',
 		'wp_wikipedia_factcheck_credentials'
 	);
 
 	add_settings_field(
-		'wikimedia_enterprise_language',
+		'wp_wikipedia_factcheck_language',
 		__( 'Default Language', 'wp-wikipedia-factcheck' ),
 		function () {
-			$value     = get_option( 'wikimedia_enterprise_language', 'en' );
-			$languages = array(
-				'en' => 'English',
-				'de' => 'Deutsch',
-				'fr' => 'Français',
-				'es' => 'Español',
-				'it' => 'Italiano',
-				'pt' => 'Português',
-				'ja' => '日本語',
-				'zh' => '中文',
-			);
-			echo '<select name="wikimedia_enterprise_language">';
+			$value     = get_option( 'wp_wikipedia_factcheck_language', 'en' );
+			$languages = wp_wikipedia_factcheck_get_supported_languages();
+			echo '<select name="wp_wikipedia_factcheck_language">';
 			foreach ( $languages as $code => $label ) {
 				echo '<option value="' . esc_attr( $code ) . '"' . selected( $value, $code, false ) . '>' . esc_html( $label ) . '</option>';
 			}
@@ -687,6 +762,39 @@ function wp_wikipedia_factcheck_register_settings(): void {
 	);
 }
 add_action( 'admin_init', 'wp_wikipedia_factcheck_register_settings' );
+
+/**
+ * Enqueue the test-connection script on the settings page.
+ *
+ * @param string $hook_suffix The admin page hook suffix.
+ */
+function wp_wikipedia_factcheck_enqueue_admin_assets( string $hook_suffix ): void {
+	if ( 'settings_page_wp-wikipedia-factcheck' !== $hook_suffix ) {
+		return;
+	}
+
+	wp_enqueue_script(
+		'wp-wikipedia-factcheck-admin',
+		WP_WIKIPEDIA_FACTCHECK_URL . 'build/admin.js',
+		array(),
+		WP_WIKIPEDIA_FACTCHECK_VERSION,
+		true
+	);
+
+	wp_localize_script(
+		'wp-wikipedia-factcheck-admin',
+		'wpWikipediaFactcheckAdmin',
+		array(
+			'testUrl'        => rest_url( 'wp-wikipedia-factcheck/v1/test-connection' ),
+			'nonce'          => wp_create_nonce( 'wp_rest' ),
+			'i18n'           => array(
+				'testing'       => __( 'Testing...', 'wp-wikipedia-factcheck' ),
+				'requestFailed' => __( 'Request failed.', 'wp-wikipedia-factcheck' ),
+			),
+		)
+	);
+}
+add_action( 'admin_enqueue_scripts', 'wp_wikipedia_factcheck_enqueue_admin_assets' );
 
 /**
  * Render settings page.
@@ -710,43 +818,51 @@ function wp_wikipedia_factcheck_settings_page(): void {
 			</button>
 			<span id="wp-wikipedia-factcheck-test-result" style="margin-left: 10px;"></span>
 		</p>
-		<script>
-		document.getElementById('wp-wikipedia-factcheck-test').addEventListener('click', function() {
-			const btn = this;
-			const result = document.getElementById('wp-wikipedia-factcheck-test-result');
-			btn.disabled = true;
-			result.textContent = '<?php echo esc_js( __( 'Testing...', 'wp-wikipedia-factcheck' ) ); ?>';
-			result.style.color = '';
-
-			fetch('<?php echo esc_url( rest_url( 'wp-wikipedia-factcheck/v1/test-connection' ) ); ?>', {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-					'X-WP-Nonce': '<?php echo esc_js( wp_create_nonce( 'wp_rest' ) ); ?>'
-				}
-			})
-			.then(function(r) { return r.json(); })
-			.then(function(data) {
-				result.textContent = data.message;
-				result.style.color = data.success ? 'green' : 'red';
-			})
-			.catch(function() {
-				result.textContent = '<?php echo esc_js( __( 'Request failed.', 'wp-wikipedia-factcheck' ) ); ?>';
-				result.style.color = 'red';
-			})
-			.finally(function() {
-				btn.disabled = false;
-			});
-		});
-		</script>
 	</div>
 	<?php
 }
 
 /**
+ * Register custom blocks from build directory.
+ */
+function wp_wikipedia_factcheck_register_blocks(): void {
+	if ( ! file_exists( WP_WIKIPEDIA_FACTCHECK_PATH . 'build/blocks/fact-box/block.json' ) ) {
+		return;
+	}
+
+	register_block_type(
+		WP_WIKIPEDIA_FACTCHECK_PATH . 'build/blocks/fact-box',
+		array(
+			'render_callback' => 'wp_wikipedia_factcheck_render_fact_box_block',
+		)
+	);
+
+	register_block_type(
+		WP_WIKIPEDIA_FACTCHECK_PATH . 'build/blocks/tooltip',
+		array(
+			'render_callback' => 'wp_wikipedia_factcheck_render_tooltip_block',
+		)
+	);
+}
+add_action( 'init', 'wp_wikipedia_factcheck_register_blocks' );
+
+/**
  * Ensure password option is not autoloaded.
  */
 function wp_wikipedia_factcheck_activate(): void {
-	add_option( 'wikimedia_enterprise_password', '', '', false );
+	add_option( 'wp_wikipedia_factcheck_password', '', '', false );
 }
 register_activation_hook( __FILE__, 'wp_wikipedia_factcheck_activate' );
+
+/**
+ * Clean up transients on deactivation.
+ */
+function wp_wikipedia_factcheck_deactivate(): void {
+	delete_transient( 'wpwfc_access_token' );
+
+	global $wpdb;
+	$wpdb->query(
+		"DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_wpwfc_%' OR option_name LIKE '_transient_timeout_wpwfc_%'"
+	);
+}
+register_deactivation_hook( __FILE__, 'wp_wikipedia_factcheck_deactivate' );

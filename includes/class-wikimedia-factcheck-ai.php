@@ -9,7 +9,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-class Wikimedia_Factcheck_AI {
+class WP_Wikipedia_Factcheck_AI {
 
 	/**
 	 * Ordered provider/model preferences for text generation fallback.
@@ -32,6 +32,10 @@ class Wikimedia_Factcheck_AI {
 	 * @return void
 	 */
 	private static function log_debug( string $event, array $context = array() ): void {
+		if ( ! defined( 'WP_DEBUG' ) || ! WP_DEBUG ) {
+			return;
+		}
+
 		$payload = array_merge(
 			array(
 				'event' => $event,
@@ -39,7 +43,7 @@ class Wikimedia_Factcheck_AI {
 			$context
 		);
 
-		error_log( 'WP Wikipedia Fact-Check AI: ' . wp_json_encode( $payload ) );
+		error_log( 'WP Wikipedia Fact-Check AI: ' . wp_json_encode( $payload ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
 	}
 
 	/**
@@ -389,7 +393,7 @@ class Wikimedia_Factcheck_AI {
 			)
 		);
 
-		$cache_key = 'wikimedia_fc_ai_analysis_' . md5( wp_json_encode( array( $selected_text, $article['name'] ?? '', $article['abstract'] ?? '' ) ) );
+		$cache_key = 'wpwfc_analysis_' . md5( wp_json_encode( array( $selected_text, $article['name'] ?? '', $article['abstract'] ?? '' ) ) );
 		$cached    = get_transient( $cache_key );
 		if ( false !== $cached ) {
 			self::log_debug( 'analyze_claim:cache_hit' );
@@ -470,7 +474,7 @@ class Wikimedia_Factcheck_AI {
 			)
 		);
 
-		$cache_key = 'wikimedia_fc_ai_facts_' . md5( wp_json_encode( array( $article['name'] ?? '', $article['abstract'] ?? '' ) ) );
+		$cache_key = 'wpwfc_facts_' . md5( wp_json_encode( array( $article['name'] ?? '', $article['abstract'] ?? '' ) ) );
 		$cached    = get_transient( $cache_key );
 		if ( false !== $cached ) {
 			self::log_debug( 'generate_interesting_facts:cache_hit' );
@@ -561,7 +565,7 @@ class Wikimedia_Factcheck_AI {
 			);
 		}
 
-		$cache_key = 'wikimedia_fc_ai_topics_' . md5( $content );
+		$cache_key = 'wpwfc_topics_' . md5( $content );
 		$cached    = get_transient( $cache_key );
 		if ( false !== $cached ) {
 			self::log_debug( 'suggest_topics:cache_hit' );
@@ -670,7 +674,7 @@ class Wikimedia_Factcheck_AI {
 			)
 		);
 
-		$cache_key = 'wikimedia_fc_ai_briefing_' . md5(
+		$cache_key = 'wpwfc_briefing_' . md5(
 			wp_json_encode(
 				array(
 					$article['name'] ?? '',

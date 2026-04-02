@@ -25,7 +25,7 @@ function getBadgeProps( revertRisk ) {
 		};
 	}
 
-	if ( revertRisk <= 0.40 ) {
+	if ( revertRisk <= 0.4 ) {
 		return {
 			label: __( 'Moderate', 'wp-wikipedia-factcheck' ),
 			className: 'wp-wikipedia-factcheck-badge--amber',
@@ -43,7 +43,10 @@ export default function CredibilityBadge( { revertRisk } ) {
 
 	return (
 		<Tooltip
-			text={ __( 'Revert risk score from Wikimedia: probability this article version was vandalism.', 'wp-wikipedia-factcheck' ) }
+			text={ __(
+				'Revert risk score from Wikimedia: probability this article version was vandalism.',
+				'wp-wikipedia-factcheck'
+			) }
 		>
 			<span className={ `wp-wikipedia-factcheck-badge ${ className }` }>
 				{ label }

@@ -12,12 +12,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-class Wikimedia_API {
+class WP_Wikipedia_Factcheck_API {
 
 	private const AUTH_URL    = 'https://auth.enterprise.wikimedia.com/v1/login';
 	private const API_URL     = 'https://api.enterprise.wikimedia.com/v2/articles/';
 	private const SEARCH_URL  = 'https://%s.wikipedia.org/w/api.php';
-	private const TOKEN_KEY   = 'wikimedia_enterprise_access_token';
+	private const TOKEN_KEY   = 'wpwfc_access_token';
 	private const TOKEN_TTL   = 82800; // 23 hours in seconds.
 
 	/**
@@ -34,8 +34,8 @@ class Wikimedia_API {
 			}
 		}
 
-		$username = strtolower( trim( (string) get_option( 'wikimedia_enterprise_username' ) ) );
-		$password = (string) get_option( 'wikimedia_enterprise_password' );
+		$username = strtolower( trim( (string) get_option( 'wp_wikipedia_factcheck_username' ) ) );
+		$password = wp_wikipedia_factcheck_decrypt_password( (string) get_option( 'wp_wikipedia_factcheck_password' ) );
 
 		if ( empty( $username ) || empty( $password ) ) {
 			return new WP_Error(
@@ -300,7 +300,8 @@ class Wikimedia_API {
 		$first_char = function_exists( 'mb_substr' ) ? mb_substr( $term, 0, 1 ) : substr( $term, 0, 1 );
 		$remainder  = function_exists( 'mb_substr' ) ? mb_substr( $term, 1 ) : substr( $term, 1 );
 		if ( '' !== $first_char ) {
-			$title_case_candidate = strtoupper( $first_char ) . $remainder;
+			$upper_first          = function_exists( 'mb_strtoupper' ) ? mb_strtoupper( $first_char ) : strtoupper( $first_char );
+			$title_case_candidate = $upper_first . $remainder;
 			$candidates[]         = $title_case_candidate;
 			$candidates[]         = str_replace( ' ', '_', $title_case_candidate );
 		}

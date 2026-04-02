@@ -3,7 +3,15 @@
  */
 import { useState } from '@wordpress/element';
 import { useBlockProps, InspectorControls } from '@wordpress/block-editor';
-import { PanelBody, TextControl, TextareaControl, Button, Notice, Spinner, RadioControl } from '@wordpress/components';
+import {
+	PanelBody,
+	TextControl,
+	TextareaControl,
+	Button,
+	Notice,
+	Spinner,
+	RadioControl,
+} from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 
 /**
@@ -26,7 +34,9 @@ export default function FactBoxEdit( { attributes, setAttributes } ) {
 		setError( null );
 
 		try {
-			const data = await requestWikipediaFactcheck( 'interesting-facts', { term } );
+			const data = await requestWikipediaFactcheck( 'interesting-facts', {
+				term,
+			} );
 			setOptions( data.facts || [] );
 
 			if ( data.article?.url ) {
@@ -50,29 +60,50 @@ export default function FactBoxEdit( { attributes, setAttributes } ) {
 	return (
 		<>
 			<InspectorControls>
-				<PanelBody title={ __( 'Wikipedia Fact Box', 'wp-wikipedia-factcheck' ) } initialOpen>
+				<PanelBody
+					title={ __(
+						'Wikipedia Fact Box',
+						'wp-wikipedia-factcheck'
+					) }
+					initialOpen
+				>
 					<TextControl
-						label={ __( 'Wikipedia term', 'wp-wikipedia-factcheck' ) }
+						label={ __(
+							'Wikipedia term',
+							'wp-wikipedia-factcheck'
+						) }
 						value={ term }
-						onChange={ ( value ) => setAttributes( { term: value } ) }
+						onChange={ ( value ) =>
+							setAttributes( { term: value } )
+						}
 					/>
 					<Button
 						variant="primary"
 						onClick={ fetchFacts }
 						disabled={ loading || ! term.trim() }
 					>
-						{ loading ? __( 'Loading facts…', 'wp-wikipedia-factcheck' ) : __( 'Suggest facts with AI', 'wp-wikipedia-factcheck' ) }
+						{ loading
+							? __( 'Loading facts…', 'wp-wikipedia-factcheck' )
+							: __(
+									'Suggest facts with AI',
+									'wp-wikipedia-factcheck'
+							  ) }
 					</Button>
 					{ options.length > 0 && (
 						<RadioControl
-							label={ __( 'Choose a fact', 'wp-wikipedia-factcheck' ) }
+							label={ __(
+								'Choose a fact',
+								'wp-wikipedia-factcheck'
+							) }
 							selected={ fact }
 							options={ options.map( ( option ) => ( {
 								label: `${ option.headline }: ${ option.fact }`,
 								value: option.fact,
 							} ) ) }
 							onChange={ ( value ) => {
-								const selected = options.find( ( option ) => option.fact === value );
+								const selected = options.find(
+									( option ) => option.fact === value
+								);
 								setAttributes( {
 									fact: value,
 									headline: selected?.headline || headline,
@@ -83,7 +114,11 @@ export default function FactBoxEdit( { attributes, setAttributes } ) {
 				</PanelBody>
 			</InspectorControls>
 
-			<div { ...useBlockProps( { className: 'wp-wikipedia-factcheck-block-editor-card' } ) }>
+			<div
+				{ ...useBlockProps( {
+					className: 'wp-wikipedia-factcheck-block-editor-card',
+				} ) }
+			>
 				{ error && (
 					<Notice status="error" isDismissible={ false }>
 						{ error }
@@ -100,8 +135,13 @@ export default function FactBoxEdit( { attributes, setAttributes } ) {
 				<TextControl
 					label={ __( 'Headline', 'wp-wikipedia-factcheck' ) }
 					value={ headline }
-					onChange={ ( value ) => setAttributes( { headline: value } ) }
-					placeholder={ __( 'Interesting fact', 'wp-wikipedia-factcheck' ) }
+					onChange={ ( value ) =>
+						setAttributes( { headline: value } )
+					}
+					placeholder={ __(
+						'Interesting fact',
+						'wp-wikipedia-factcheck'
+					) }
 				/>
 				<TextareaControl
 					label={ __( 'Selected fact', 'wp-wikipedia-factcheck' ) }
@@ -115,13 +155,19 @@ export default function FactBoxEdit( { attributes, setAttributes } ) {
 						onClick={ fetchFacts }
 						disabled={ loading || ! term.trim() }
 					>
-						{ __( 'Refresh suggestions', 'wp-wikipedia-factcheck' ) }
+						{ __(
+							'Refresh suggestions',
+							'wp-wikipedia-factcheck'
+						) }
 					</Button>
 					{ loading && <Spinner /> }
 				</div>
 				{ articleUrl && (
 					<p className="wp-wikipedia-factcheck-block-editor-card__help">
-						{ __( 'Source article linked and ready for the front end.', 'wp-wikipedia-factcheck' ) }
+						{ __(
+							'Source article linked and ready for the front end.',
+							'wp-wikipedia-factcheck'
+						) }
 					</p>
 				) }
 			</div>

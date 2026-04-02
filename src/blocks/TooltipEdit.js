@@ -3,7 +3,14 @@
  */
 import { useState } from '@wordpress/element';
 import { useBlockProps, InspectorControls } from '@wordpress/block-editor';
-import { PanelBody, TextControl, TextareaControl, Button, Notice, Spinner } from '@wordpress/components';
+import {
+	PanelBody,
+	TextControl,
+	TextareaControl,
+	Button,
+	Notice,
+	Spinner,
+} from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 
 /**
@@ -17,7 +24,9 @@ function summarizeTooltipContent( text ) {
 	}
 
 	const firstSentence = text.match( /(.+?[.!?])(\s|$)/ )?.[ 1 ] || text;
-	return firstSentence.length > 220 ? `${ firstSentence.substring( 0, 217 ) }...` : firstSentence;
+	return firstSentence.length > 220
+		? `${ firstSentence.substring( 0, 217 ) }...`
+		: firstSentence;
 }
 
 export default function TooltipEdit( { attributes, setAttributes } ) {
@@ -35,7 +44,9 @@ export default function TooltipEdit( { attributes, setAttributes } ) {
 		setError( null );
 
 		try {
-			const data = await requestWikipediaFactcheck( 'lookup', { term: lookupTerm } );
+			const data = await requestWikipediaFactcheck( 'lookup', {
+				term: lookupTerm,
+			} );
 			setAttributes( {
 				term: data.name || lookupTerm,
 				content: summarizeTooltipContent( data.abstract ) || content,
@@ -51,28 +62,54 @@ export default function TooltipEdit( { attributes, setAttributes } ) {
 	return (
 		<>
 			<InspectorControls>
-				<PanelBody title={ __( 'Wikipedia Tooltip', 'wp-wikipedia-factcheck' ) } initialOpen>
+				<PanelBody
+					title={ __(
+						'Wikipedia Tooltip',
+						'wp-wikipedia-factcheck'
+					) }
+					initialOpen
+				>
 					<TextControl
-						label={ __( 'Trigger label', 'wp-wikipedia-factcheck' ) }
+						label={ __(
+							'Trigger label',
+							'wp-wikipedia-factcheck'
+						) }
 						value={ label }
-						onChange={ ( value ) => setAttributes( { label: value } ) }
+						onChange={ ( value ) =>
+							setAttributes( { label: value } )
+						}
 					/>
 					<TextControl
-						label={ __( 'Wikipedia term', 'wp-wikipedia-factcheck' ) }
+						label={ __(
+							'Wikipedia term',
+							'wp-wikipedia-factcheck'
+						) }
 						value={ term }
-						onChange={ ( value ) => setAttributes( { term: value } ) }
+						onChange={ ( value ) =>
+							setAttributes( { term: value } )
+						}
 					/>
 					<Button
 						variant="primary"
 						onClick={ loadWikipediaSummary }
 						disabled={ loading || ! ( term || label ).trim() }
 					>
-						{ loading ? __( 'Loading summary…', 'wp-wikipedia-factcheck' ) : __( 'Load from Wikipedia', 'wp-wikipedia-factcheck' ) }
+						{ loading
+							? __( 'Loading summary…', 'wp-wikipedia-factcheck' )
+							: __(
+									'Load from Wikipedia',
+									'wp-wikipedia-factcheck'
+							  ) }
 					</Button>
 				</PanelBody>
 			</InspectorControls>
 
-			<div { ...useBlockProps( { className: 'wp-wikipedia-factcheck-block-editor-card wp-wikipedia-factcheck-block-editor-card--tooltip' } ) }>
+			<div
+				{ ...useBlockProps( {
+					className:
+						'wp-wikipedia-factcheck-block-editor-card wp-wikipedia-factcheck-block-editor-card--tooltip',
+				} ) }
+			>
 				{ error && (
 					<Notice status="error" isDismissible={ false }>
 						{ error }
@@ -85,7 +122,10 @@ export default function TooltipEdit( { attributes, setAttributes } ) {
 					label={ __( 'Trigger label', 'wp-wikipedia-factcheck' ) }
 					value={ label }
 					onChange={ ( value ) => setAttributes( { label: value } ) }
-					placeholder={ __( 'Highlighted phrase', 'wp-wikipedia-factcheck' ) }
+					placeholder={ __(
+						'Highlighted phrase',
+						'wp-wikipedia-factcheck'
+					) }
 				/>
 				<TextControl
 					label={ __( 'Wikipedia term', 'wp-wikipedia-factcheck' ) }
@@ -95,7 +135,9 @@ export default function TooltipEdit( { attributes, setAttributes } ) {
 				<TextareaControl
 					label={ __( 'Tooltip content', 'wp-wikipedia-factcheck' ) }
 					value={ content }
-					onChange={ ( value ) => setAttributes( { content: value } ) }
+					onChange={ ( value ) =>
+						setAttributes( { content: value } )
+					}
 					rows={ 5 }
 				/>
 				<div className="wp-wikipedia-factcheck-block-editor-card__actions">
@@ -110,15 +152,23 @@ export default function TooltipEdit( { attributes, setAttributes } ) {
 				</div>
 				<p className="wp-wikipedia-factcheck-tooltip-preview">
 					<span className="wp-wikipedia-factcheck-tooltip-preview__label">
-						{ label || __( 'Tooltip label', 'wp-wikipedia-factcheck' ) }
+						{ label ||
+							__( 'Tooltip label', 'wp-wikipedia-factcheck' ) }
 					</span>
 					<span className="wp-wikipedia-factcheck-tooltip-preview__bubble">
-						{ content || __( 'Tooltip content will appear here.', 'wp-wikipedia-factcheck' ) }
+						{ content ||
+							__(
+								'Tooltip content will appear here.',
+								'wp-wikipedia-factcheck'
+							) }
 					</span>
 				</p>
 				{ articleUrl && (
 					<p className="wp-wikipedia-factcheck-block-editor-card__help">
-						{ __( 'The tooltip will link back to the Wikipedia source.', 'wp-wikipedia-factcheck' ) }
+						{ __(
+							'The tooltip will link back to the Wikipedia source.',
+							'wp-wikipedia-factcheck'
+						) }
 					</p>
 				) }
 			</div>

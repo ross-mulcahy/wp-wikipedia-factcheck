@@ -39,7 +39,10 @@ export default function SearchPanel( {
 	};
 
 	return (
-		<form className="wp-wikipedia-factcheck-search" onSubmit={ handleSubmit }>
+		<form
+			className="wp-wikipedia-factcheck-search"
+			onSubmit={ handleSubmit }
+		>
 			<TextControl
 				label={ __( 'Search Wikipedia', 'wp-wikipedia-factcheck' ) }
 				value={ term }
@@ -63,7 +66,11 @@ export default function SearchPanel( {
 					onClick={ handleSubmit }
 					disabled={ disabled || loading || ! term.trim() }
 				>
-					{ loading ? <Spinner /> : __( 'Search', 'wp-wikipedia-factcheck' ) }
+					{ loading ? (
+						<Spinner />
+					) : (
+						__( 'Search', 'wp-wikipedia-factcheck' )
+					) }
 				</Button>
 				{ ( term || loading ) && (
 					<Button
@@ -79,9 +86,13 @@ export default function SearchPanel( {
 				<Button
 					variant="secondary"
 					onClick={ onSuggestTopics }
-					disabled={ disabled || loading || suggesting || ! draftContent }
+					disabled={
+						disabled || loading || suggesting || ! draftContent
+					}
 				>
-					{ suggesting ? __( 'Scanning draft…', 'wp-wikipedia-factcheck' ) : __( 'Suggest from draft', 'wp-wikipedia-factcheck' ) }
+					{ suggesting
+						? __( 'Scanning draft…', 'wp-wikipedia-factcheck' )
+						: __( 'Suggest from draft', 'wp-wikipedia-factcheck' ) }
 				</Button>
 			</div>
 			{ suggestionsError && (
@@ -92,7 +103,10 @@ export default function SearchPanel( {
 			{ suggestions?.length > 0 && (
 				<div className="wp-wikipedia-factcheck-suggestions">
 					<p className="wp-wikipedia-factcheck-search-help">
-						{ __( 'AI spotted a few Wikipedia topics worth checking in this draft.', 'wp-wikipedia-factcheck' ) }
+						{ __(
+							'AI spotted a few Wikipedia topics worth checking in this draft.',
+							'wp-wikipedia-factcheck'
+						) }
 					</p>
 					<div className="wp-wikipedia-factcheck-suggestion-list">
 						{ suggestions.map( ( suggestion ) => (
@@ -107,7 +121,9 @@ export default function SearchPanel( {
 								disabled={ disabled || loading || suggesting }
 							>
 								<strong>{ suggestion.term }</strong>
-								{ suggestion.why && <span>{ suggestion.why }</span> }
+								{ suggestion.why && (
+									<span>{ suggestion.why }</span>
+								) }
 							</button>
 						) ) }
 					</div>

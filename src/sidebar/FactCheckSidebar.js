@@ -17,7 +17,8 @@ import ResultPanel from './ResultPanel';
 const { hasCredentials, settingsUrl } = window.wpWikipediaFactcheck || {};
 
 function getSelectedEditorText( select ) {
-	const { getSelectionStart, getSelectionEnd, getBlock } = select( 'core/block-editor' );
+	const { getSelectionStart, getSelectionEnd, getBlock } =
+		select( 'core/block-editor' );
 	const start = getSelectionStart();
 	const end = getSelectionEnd();
 
@@ -33,7 +34,11 @@ function getSelectedEditorText( select ) {
 	const content = block.attributes?.[ start.attributeKey ] || '';
 	const plainText = String( content ).replace( /<[^>]+>/g, '' );
 
-	if ( typeof start.offset === 'number' && typeof end.offset === 'number' && start.offset !== end.offset ) {
+	if (
+		typeof start.offset === 'number' &&
+		typeof end.offset === 'number' &&
+		start.offset !== end.offset
+	) {
 		return plainText.substring( start.offset, end.offset ).trim();
 	}
 
@@ -78,7 +83,13 @@ export default function FactCheckSidebar() {
 				setResult( data.article );
 			}
 		} catch ( requestError ) {
-			setBriefingError( requestError.message || __( 'Could not build an AI briefing for this article.', 'wp-wikipedia-factcheck' ) );
+			setBriefingError(
+				requestError.message ||
+					__(
+						'Could not build an AI briefing for this article.',
+						'wp-wikipedia-factcheck'
+					)
+			);
 		} finally {
 			setBriefingLoading( false );
 		}
@@ -102,7 +113,13 @@ export default function FactCheckSidebar() {
 				await loadBriefing( term );
 			}
 		} catch ( requestError ) {
-			setError( requestError.message || __( 'Could not reach Wikipedia. Please try again.', 'wp-wikipedia-factcheck' ) );
+			setError(
+				requestError.message ||
+					__(
+						'Could not reach Wikipedia. Please try again.',
+						'wp-wikipedia-factcheck'
+					)
+			);
 		} finally {
 			setLoading( false );
 		}
@@ -123,7 +140,13 @@ export default function FactCheckSidebar() {
 			} );
 			setSuggestions( data.suggestions || [] );
 		} catch ( requestError ) {
-			setSuggestionsError( requestError.message || __( 'Could not suggest Wikipedia topics from this draft.', 'wp-wikipedia-factcheck' ) );
+			setSuggestionsError(
+				requestError.message ||
+					__(
+						'Could not suggest Wikipedia topics from this draft.',
+						'wp-wikipedia-factcheck'
+					)
+			);
 		} finally {
 			setSuggesting( false );
 		}
@@ -149,15 +172,31 @@ export default function FactCheckSidebar() {
 		>
 			<div className="wp-wikipedia-factcheck-sidebar">
 				<div className="wp-wikipedia-factcheck-intro">
-					<p>{ __( 'Check a claim, place, person, or organisation against Wikipedia and review a few trust signals before you cite it.', 'wp-wikipedia-factcheck' ) }</p>
+					<p>
+						{ __(
+							'Check a claim, place, person, or organisation against Wikipedia and review a few trust signals before you cite it.',
+							'wp-wikipedia-factcheck'
+						) }
+					</p>
 				</div>
 
 				{ ! hasCredentials && (
 					<Notice status="warning" isDismissible={ false }>
-						{ __( 'Configure your Wikimedia Enterprise credentials in ', 'wp-wikipedia-factcheck' ) }
-						<a href={ settingsUrl } target="_blank" rel="noopener noreferrer">
-							{ __( 'Settings → Wikipedia Fact-Check', 'wp-wikipedia-factcheck' ) }
-						</a>.
+						{ __(
+							'Configure your Wikimedia Enterprise credentials in',
+							'wp-wikipedia-factcheck'
+						) }
+						<a
+							href={ settingsUrl }
+							target="_blank"
+							rel="noopener noreferrer"
+						>
+							{ __(
+								'Settings → Wikipedia Fact-Check',
+								'wp-wikipedia-factcheck'
+							) }
+						</a>
+						.
 					</Notice>
 				) }
 
@@ -176,7 +215,11 @@ export default function FactCheckSidebar() {
 				/>
 
 				{ error && (
-					<Notice status="error" isDismissible onDismiss={ () => setError( null ) }>
+					<Notice
+						status="error"
+						isDismissible
+						onDismiss={ () => setError( null ) }
+					>
 						{ error }
 					</Notice>
 				) }
@@ -188,7 +231,9 @@ export default function FactCheckSidebar() {
 						briefing={ briefing }
 						briefingError={ briefingError }
 						briefingLoading={ briefingLoading }
-						onGenerateBriefing={ () => loadBriefing( searchedTerm ) }
+						onGenerateBriefing={ () =>
+							loadBriefing( searchedTerm )
+						}
 					/>
 				) }
 			</div>
