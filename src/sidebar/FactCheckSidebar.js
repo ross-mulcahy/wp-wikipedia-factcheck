@@ -40,6 +40,15 @@ function getSelectedEditorText( select ) {
 	return '';
 }
 
+function getDraftEditorText( select ) {
+	const content = select( 'core/editor' )?.getEditedPostContent?.() || '';
+
+	return String( content )
+		.replace( /<[^>]+>/g, ' ' )
+		.replace( /\s+/g, ' ' )
+		.trim();
+}
+
 export default function FactCheckSidebar() {
 	const [ result, setResult ] = useState( null );
 	const [ error, setError ] = useState( null );
@@ -48,24 +57,85 @@ export default function FactCheckSidebar() {
 	const [ analysis, setAnalysis ] = useState( null );
 	const [ analysisError, setAnalysisError ] = useState( null );
 	const [ analyzing, setAnalyzing ] = useState( false );
+	const [ suggestions, setSuggestions ] = useState( [] );
+	const [ suggestionsError, setSuggestionsError ] = useState( null );
+	const [ suggesting, setSuggesting ] = useState( false );
+	const [ briefing, setBriefing ] = useState( null );
+	const [ briefingError, setBriefingError ] = useState( null );
+	const [ briefingLoading, setBriefingLoading ] = useState( false );
 	const selectedText = useSelect( getSelectedEditorText, [] );
+	const draftContent = useSelect( getDraftEditorText, [] );
 
-	const handleSearch = async ( term ) => {
+	const loadBriefing = async ( term ) => {
+		setBriefingLoading( true );
+		setBriefingError( null );
+
+		try {
+			const data = await requestWikipediaFactcheck( 'briefing', {
+				term,
+				content: draftContent,
+			} );
+			setBriefing( data.briefing );
+
+			if ( data.article ) {
+				setResult( data.article );
+			}
+		} catch ( requestError ) {
+			setBriefingError( requestError.message || __( 'Could not build an AI briefing for this article.', 'wp-wikipedia-factcheck' ) );
+		} finally {
+			setBriefingLoading( false );
+		}
+	};
+
+	const handleSearch = async ( term, options = {} ) => {
+		const { withBriefing = false } = options;
+
 		setSearchedTerm( term );
 		setError( null );
 		setResult( null );
 		setAnalysis( null );
 		setAnalysisError( null );
+		setBriefing( null );
+		setBriefingError( null );
 		setLoading( true );
 
 		try {
 			const data = await requestWikipediaFactcheck( 'lookup', { term } );
 			setResult( data );
+
+			if ( withBriefing && data?.found ) {
+				await loadBriefing( term );
+			}
 		} catch ( requestError ) {
 			setError( requestError.message || __( 'Could not reach Wikipedia. Please try again.', 'wp-wikipedia-factcheck' ) );
 		} finally {
 			setLoading( false );
 		}
+	};
+
+	const handleSuggestTopics = async () => {
+		if ( ! draftContent ) {
+			return;
+		}
+
+		setSuggesting( true );
+		setSuggestionsError( null );
+		setSuggestions( [] );
+
+		try {
+			const data = await requestWikipediaFactcheck( 'suggest-topics', {
+				content: draftContent,
+			} );
+			setSuggestions( data.suggestions || [] );
+		} catch ( requestError ) {
+			setSuggestionsError( requestError.message || __( 'Could not suggest Wikipedia topics from this draft.', 'wp-wikipedia-factcheck' ) );
+		} finally {
+			setSuggesting( false );
+		}
+	};
+
+	const handleSuggestionSelect = async ( term ) => {
+		await handleSearch( term, { withBriefing: true } );
 	};
 
 	const handleAnalyze = async () => {
@@ -95,6 +165,8 @@ export default function FactCheckSidebar() {
 		setError( null );
 		setAnalysis( null );
 		setAnalysisError( null );
+		setBriefing( null );
+		setBriefingError( null );
 	};
 
 	return (
@@ -119,10 +191,16 @@ export default function FactCheckSidebar() {
 
 				<SearchPanel
 					onSearch={ handleSearch }
+					onSuggestTopics={ handleSuggestTopics }
+					onSelectSuggestion={ handleSuggestionSelect }
 					onClear={ handleClear }
 					loading={ loading }
+					suggesting={ suggesting }
 					disabled={ ! hasCredentials }
 					selectedText={ selectedText }
+					draftContent={ draftContent }
+					suggestions={ suggestions }
+					suggestionsError={ suggestionsError }
 				/>
 
 				{ error && (
@@ -139,7 +217,11 @@ export default function FactCheckSidebar() {
 						analysis={ analysis }
 						analysisError={ analysisError }
 						analyzing={ analyzing }
+						briefing={ briefing }
+						briefingError={ briefingError }
+						briefingLoading={ briefingLoading }
 						onAnalyze={ handleAnalyze }
+						onGenerateBriefing={ () => loadBriefing( searchedTerm ) }
 					/>
 				) }
 			</div>

@@ -525,4 +525,204 @@ class Wikimedia_Factcheck_AI {
 
 		return $data;
 	}
+
+	/**
+	 * Suggest Wikipedia search terms from draft content.
+	 *
+	 * @param string $content Draft content.
+	 * @return array|WP_Error
+	 */
+	public static function suggest_topics_from_content( string $content ): array|WP_Error {
+		self::log_debug(
+			'suggest_topics:start',
+			array(
+				'content_length' => strlen( $content ),
+			)
+		);
+
+		$content = trim( $content );
+
+		if ( '' === $content ) {
+			return new WP_Error(
+				'ai_empty_content',
+				__( 'Add some draft content before asking for Wikipedia topic suggestions.', 'wp-wikipedia-factcheck' ),
+				array( 'status' => 400 )
+			);
+		}
+
+		$cache_key = 'wikimedia_fc_ai_topics_' . md5( $content );
+		$cached    = get_transient( $cache_key );
+		if ( false !== $cached ) {
+			self::log_debug( 'suggest_topics:cache_hit' );
+			return $cached;
+		}
+
+		$schema = array(
+			'type'  => 'array',
+			'items' => array(
+				'type'                 => 'object',
+				'additionalProperties' => false,
+				'properties'           => array(
+					'term' => array( 'type' => 'string' ),
+					'why'  => array( 'type' => 'string' ),
+				),
+				'required'             => array( 'term', 'why' ),
+			),
+		);
+
+		$prompt = sprintf(
+			"Draft article content:\n%s\n\nSuggest up to 5 specific Wikipedia search terms a writer should check. Prefer named people, places, organisations, events, works, or concepts that are central to the draft and likely to have useful Wikipedia pages. Return JSON only.",
+			$content
+		);
+
+		$json = self::generate_text_with_fallback(
+			$prompt,
+			'You help journalists and editors identify the best Wikipedia lookup targets from a draft article. Suggest only terms that are likely to produce useful factual context, and keep explanations brief.',
+			0.2,
+			$schema,
+			'suggest_topics'
+		);
+
+		if ( is_wp_error( $json ) ) {
+			return $json;
+		}
+
+		$data = json_decode( $json, true );
+		if ( ! is_array( $data ) ) {
+			return new WP_Error(
+				'ai_invalid_response',
+				__( 'The AI Client returned invalid topic suggestions.', 'wp-wikipedia-factcheck' ),
+				array( 'status' => 422 )
+			);
+		}
+
+		$data = array_values(
+			array_filter(
+				array_map(
+					static function ( $item ) {
+						if ( ! is_array( $item ) ) {
+							return null;
+						}
+
+						$term = trim( (string) ( $item['term'] ?? '' ) );
+						$why  = trim( (string) ( $item['why'] ?? '' ) );
+
+						if ( '' === $term ) {
+							return null;
+						}
+
+						return array(
+							'term' => $term,
+							'why'  => $why,
+						);
+					},
+					$data
+				)
+			)
+		);
+
+		set_transient( $cache_key, $data, 6 * HOUR_IN_SECONDS );
+		self::log_debug(
+			'suggest_topics:success',
+			array(
+				'count' => count( $data ),
+			)
+		);
+
+		return $data;
+	}
+
+	/**
+	 * Build an editor briefing from a matched Wikipedia article.
+	 *
+	 * @param array  $article Article data from the Wikimedia client.
+	 * @param string $content Draft content.
+	 * @return array|WP_Error
+	 */
+	public static function generate_article_briefing( array $article, string $content = '' ): array|WP_Error {
+		self::log_debug(
+			'generate_briefing:start',
+			array(
+				'article_name'   => $article['name'] ?? '',
+				'content_length' => strlen( $content ),
+			)
+		);
+
+		$cache_key = 'wikimedia_fc_ai_briefing_' . md5(
+			wp_json_encode(
+				array(
+					$article['name'] ?? '',
+					$article['abstract'] ?? '',
+					$article['date_modified'] ?? '',
+					$content,
+				)
+			)
+		);
+		$cached    = get_transient( $cache_key );
+		if ( false !== $cached ) {
+			self::log_debug( 'generate_briefing:cache_hit' );
+			return $cached;
+		}
+
+		$schema = array(
+			'type'                 => 'object',
+			'additionalProperties' => false,
+			'properties'           => array(
+				'headline'     => array( 'type' => 'string' ),
+				'why_relevant' => array( 'type' => 'string' ),
+				'key_facts'    => array(
+					'type'  => 'array',
+					'items' => array( 'type' => 'string' ),
+				),
+				'angles'       => array(
+					'type'  => 'array',
+					'items' => array( 'type' => 'string' ),
+				),
+				'cautions'     => array(
+					'type'  => 'array',
+					'items' => array( 'type' => 'string' ),
+				),
+			),
+			'required'             => array( 'headline', 'why_relevant', 'key_facts', 'angles', 'cautions' ),
+		);
+
+		$prompt = sprintf(
+			"Draft article content:\n%s\n\nWikipedia article:\nTitle: %s\nSummary: %s\nLast edited: %s\nCategories: %s\n\nCreate a concise editorial briefing based only on the provided Wikipedia material. Explain why the topic matters to this draft, list concrete facts a writer could verify or use for context, suggest a few reporting angles, and include any cautions or limitations from the article material. Return JSON only.",
+			$content,
+			$article['name'] ?? '',
+			$article['abstract'] ?? '',
+			$article['date_modified'] ?? '',
+			implode( ', ', $article['categories'] ?? array() )
+		);
+
+		$json = self::generate_text_with_fallback(
+			$prompt,
+			'You create compact editorial briefings for writers using only the supplied Wikipedia article data. Be concrete, cautious, and useful. Do not invent facts or imply verification beyond the provided material.',
+			0.25,
+			$schema,
+			'generate_briefing'
+		);
+
+		if ( is_wp_error( $json ) ) {
+			return $json;
+		}
+
+		$data = json_decode( $json, true );
+		if ( ! is_array( $data ) ) {
+			return new WP_Error(
+				'ai_invalid_response',
+				__( 'The AI Client returned an invalid article briefing.', 'wp-wikipedia-factcheck' ),
+				array( 'status' => 422 )
+			);
+		}
+
+		$data['key_facts'] = array_values( array_filter( array_map( 'strval', $data['key_facts'] ?? array() ) ) );
+		$data['angles']    = array_values( array_filter( array_map( 'strval', $data['angles'] ?? array() ) ) );
+		$data['cautions']  = array_values( array_filter( array_map( 'strval', $data['cautions'] ?? array() ) ) );
+
+		set_transient( $cache_key, $data, 12 * HOUR_IN_SECONDS );
+		self::log_debug( 'generate_briefing:success' );
+
+		return $data;
+	}
 }

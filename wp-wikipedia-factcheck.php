@@ -2,7 +2,7 @@
 /**
  * Plugin Name: WP Wikipedia Fact-Check
  * Description: Wikipedia-powered fact-check panel for the Gutenberg block editor using the Wikimedia Enterprise API.
- * Version: 1.0.12
+ * Version: 1.0.13
  * Requires at least: 6.4
  * Requires PHP: 8.1
  * Author: Ross Mulcahy
@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'WP_WIKIPEDIA_FACTCHECK_VERSION', '1.0.12' );
+define( 'WP_WIKIPEDIA_FACTCHECK_VERSION', '1.0.13' );
 define( 'WP_WIKIPEDIA_FACTCHECK_PATH', plugin_dir_path( __FILE__ ) );
 define( 'WP_WIKIPEDIA_FACTCHECK_URL', plugins_url( '/', __FILE__ ) );
 
@@ -184,6 +184,49 @@ function wp_wikipedia_factcheck_register_routes(): void {
 					'required'          => true,
 					'type'              => 'string',
 					'sanitize_callback' => 'sanitize_text_field',
+				),
+			),
+		)
+	);
+
+	register_rest_route(
+		'wp-wikipedia-factcheck/v1',
+		'/suggest-topics',
+		array(
+			'methods'             => 'POST',
+			'callback'            => 'wp_wikipedia_factcheck_suggest_topics',
+			'permission_callback' => function () {
+				return current_user_can( 'edit_posts' );
+			},
+			'args'                => array(
+				'content' => array(
+					'required'          => true,
+					'type'              => 'string',
+					'sanitize_callback' => 'wp_kses_post',
+				),
+			),
+		)
+	);
+
+	register_rest_route(
+		'wp-wikipedia-factcheck/v1',
+		'/briefing',
+		array(
+			'methods'             => 'POST',
+			'callback'            => 'wp_wikipedia_factcheck_generate_briefing',
+			'permission_callback' => function () {
+				return current_user_can( 'edit_posts' );
+			},
+			'args'                => array(
+				'term'    => array(
+					'required'          => true,
+					'type'              => 'string',
+					'sanitize_callback' => 'sanitize_text_field',
+				),
+				'content' => array(
+					'required'          => false,
+					'type'              => 'string',
+					'sanitize_callback' => 'wp_kses_post',
 				),
 			),
 		)
@@ -381,6 +424,93 @@ function wp_wikipedia_factcheck_generate_facts( WP_REST_Request $request ): WP_R
 		return new WP_REST_Response(
 			array(
 				'code'    => 'interesting_facts_failed',
+				'message' => $exception->getMessage(),
+			),
+			500
+		);
+	}
+}
+
+/**
+ * Suggest Wikipedia topics from the current draft content.
+ */
+function wp_wikipedia_factcheck_suggest_topics( WP_REST_Request $request ): WP_REST_Response {
+	try {
+		$content = trim( wp_strip_all_tags( (string) $request->get_param( 'content' ) ) );
+		$content = mb_substr( preg_replace( '/\s+/', ' ', $content ), 0, 6000 );
+
+		$suggestions = Wikimedia_Factcheck_AI::suggest_topics_from_content( $content );
+		if ( is_wp_error( $suggestions ) ) {
+			return new WP_REST_Response(
+				array(
+					'code'    => $suggestions->get_error_code(),
+					'message' => $suggestions->get_error_message(),
+				),
+				(int) ( $suggestions->get_error_data()['status'] ?? 400 )
+			);
+		}
+
+		return new WP_REST_Response(
+			array(
+				'suggestions' => $suggestions,
+			),
+			200
+		);
+	} catch ( Throwable $exception ) {
+		return new WP_REST_Response(
+			array(
+				'code'    => 'suggest_topics_failed',
+				'message' => $exception->getMessage(),
+			),
+			500
+		);
+	}
+}
+
+/**
+ * Generate an editorial briefing for a Wikipedia match.
+ */
+function wp_wikipedia_factcheck_generate_briefing( WP_REST_Request $request ): WP_REST_Response {
+	try {
+		$term     = trim( (string) $request->get_param( 'term' ) );
+		$content  = trim( wp_strip_all_tags( (string) $request->get_param( 'content' ) ) );
+		$content  = mb_substr( preg_replace( '/\s+/', ' ', $content ), 0, 6000 );
+		$language = get_option( 'wikimedia_enterprise_language', 'en' );
+		$api      = new Wikimedia_API();
+		$article  = $api->lookup( $term, $language );
+
+		if ( is_wp_error( $article ) ) {
+			return new WP_REST_Response(
+				array(
+					'code'    => $article->get_error_code(),
+					'message' => $article->get_error_message(),
+				),
+				502
+			);
+		}
+
+		$briefing = Wikimedia_Factcheck_AI::generate_article_briefing( $article, $content );
+		if ( is_wp_error( $briefing ) ) {
+			return new WP_REST_Response(
+				array(
+					'code'    => $briefing->get_error_code(),
+					'message' => $briefing->get_error_message(),
+				),
+				(int) ( $briefing->get_error_data()['status'] ?? 400 )
+			);
+		}
+
+		return new WP_REST_Response(
+			array(
+				'article'  => $article,
+				'briefing' => $briefing,
+			),
+			200
+		);
+	} catch ( Throwable $exception ) {
+		return new WP_REST_Response(
+			array(
+				'code'    => 'briefing_failed',
 				'message' => $exception->getMessage(),
 			),
 			500

@@ -155,7 +155,11 @@ export default function ResultPanel( {
 	analysis,
 	analysisError,
 	analyzing,
+	briefing,
+	briefingError,
+	briefingLoading,
 	onAnalyze,
+	onGenerateBriefing,
 } ) {
 	if ( ! result.found ) {
 		return (
@@ -237,6 +241,64 @@ export default function ResultPanel( {
 					{ abstract && abstract !== quickSummary && <p>{ abstract }</p> }
 				</div>
 			) }
+
+			<div className="wp-wikipedia-factcheck-section">
+				<h4>{ __( 'AI Research Brief', 'wp-wikipedia-factcheck' ) }</h4>
+				<p>
+					{ __( 'Turn this Wikipedia match into a compact editor briefing with key facts, context, and follow-up angles tied to your current draft.', 'wp-wikipedia-factcheck' ) }
+				</p>
+				<div className="wp-wikipedia-factcheck-inline-actions">
+					<button
+						type="button"
+						className="components-button is-secondary"
+						onClick={ onGenerateBriefing }
+						disabled={ briefingLoading }
+					>
+						{ briefingLoading ? __( 'Building briefing…', 'wp-wikipedia-factcheck' ) : __( 'Create briefing', 'wp-wikipedia-factcheck' ) }
+					</button>
+				</div>
+				{ briefingError && (
+					<Notice status="error" isDismissible={ false }>
+						{ briefingError }
+					</Notice>
+				) }
+				{ briefing && (
+					<div className="wp-wikipedia-factcheck-briefing">
+						<p className="wp-wikipedia-factcheck-lead">{ briefing.headline }</p>
+						<p>{ briefing.why_relevant }</p>
+						{ briefing.key_facts?.length > 0 && (
+							<>
+								<h5>{ __( 'Key Facts To Use', 'wp-wikipedia-factcheck' ) }</h5>
+								<ul className="wp-wikipedia-factcheck-list">
+									{ briefing.key_facts.map( ( fact ) => (
+										<li key={ fact }>{ fact }</li>
+									) ) }
+								</ul>
+							</>
+						) }
+						{ briefing.angles?.length > 0 && (
+							<>
+								<h5>{ __( 'Reporting Angles', 'wp-wikipedia-factcheck' ) }</h5>
+								<ul className="wp-wikipedia-factcheck-list">
+									{ briefing.angles.map( ( angle ) => (
+										<li key={ angle }>{ angle }</li>
+									) ) }
+								</ul>
+							</>
+						) }
+						{ briefing.cautions?.length > 0 && (
+							<>
+								<h5>{ __( 'Cautions', 'wp-wikipedia-factcheck' ) }</h5>
+								<ul className="wp-wikipedia-factcheck-list wp-wikipedia-factcheck-list--warning">
+									{ briefing.cautions.map( ( caution ) => (
+										<li key={ caution }>{ caution }</li>
+									) ) }
+								</ul>
+							</>
+						) }
+					</div>
+				) }
+			</div>
 
 			<div className="wp-wikipedia-factcheck-section">
 				<h4>{ __( 'Suggested Checks', 'wp-wikipedia-factcheck' ) }</h4>
