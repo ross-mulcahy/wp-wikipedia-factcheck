@@ -478,17 +478,24 @@ class Wikimedia_Factcheck_AI {
 		}
 
 		$schema = array(
-			'type'  => 'array',
-			'items' => array(
-				'type'                 => 'object',
-				'additionalProperties' => false,
-				'properties'           => array(
-					'fact'           => array( 'type' => 'string' ),
-					'headline'       => array( 'type' => 'string' ),
-					'why_interesting'=> array( 'type' => 'string' ),
+			'type'                 => 'object',
+			'additionalProperties' => false,
+			'properties'           => array(
+				'facts' => array(
+					'type'  => 'array',
+					'items' => array(
+						'type'                 => 'object',
+						'additionalProperties' => false,
+						'properties'           => array(
+							'fact'            => array( 'type' => 'string' ),
+							'headline'        => array( 'type' => 'string' ),
+							'why_interesting' => array( 'type' => 'string' ),
+						),
+						'required'             => array( 'fact', 'headline', 'why_interesting' ),
+					),
 				),
-				'required'             => array( 'fact', 'headline', 'why_interesting' ),
 			),
+			'required'             => array( 'facts' ),
 		);
 
 		$prompt = sprintf(
@@ -511,7 +518,11 @@ class Wikimedia_Factcheck_AI {
 		}
 
 		$data = json_decode( $json, true );
-		if ( ! is_array( $data ) ) {
+		$facts = is_array( $data ) && isset( $data['facts'] ) && is_array( $data['facts'] )
+			? $data['facts']
+			: null;
+
+		if ( ! is_array( $facts ) ) {
 			self::log_debug( 'generate_interesting_facts:invalid_json_response' );
 			return new WP_Error(
 				'ai_invalid_response',
@@ -520,10 +531,10 @@ class Wikimedia_Factcheck_AI {
 			);
 		}
 
-		set_transient( $cache_key, $data, 12 * HOUR_IN_SECONDS );
+		set_transient( $cache_key, $facts, 12 * HOUR_IN_SECONDS );
 		self::log_debug( 'generate_interesting_facts:success' );
 
-		return $data;
+		return $facts;
 	}
 
 	/**
@@ -558,16 +569,23 @@ class Wikimedia_Factcheck_AI {
 		}
 
 		$schema = array(
-			'type'  => 'array',
-			'items' => array(
-				'type'                 => 'object',
-				'additionalProperties' => false,
-				'properties'           => array(
-					'term' => array( 'type' => 'string' ),
-					'why'  => array( 'type' => 'string' ),
+			'type'                 => 'object',
+			'additionalProperties' => false,
+			'properties'           => array(
+				'suggestions' => array(
+					'type'  => 'array',
+					'items' => array(
+						'type'                 => 'object',
+						'additionalProperties' => false,
+						'properties'           => array(
+							'term' => array( 'type' => 'string' ),
+							'why'  => array( 'type' => 'string' ),
+						),
+						'required'             => array( 'term', 'why' ),
+					),
 				),
-				'required'             => array( 'term', 'why' ),
 			),
+			'required'             => array( 'suggestions' ),
 		);
 
 		$prompt = sprintf(
@@ -588,7 +606,11 @@ class Wikimedia_Factcheck_AI {
 		}
 
 		$data = json_decode( $json, true );
-		if ( ! is_array( $data ) ) {
+		$suggestions = is_array( $data ) && isset( $data['suggestions'] ) && is_array( $data['suggestions'] )
+			? $data['suggestions']
+			: null;
+
+		if ( ! is_array( $suggestions ) ) {
 			return new WP_Error(
 				'ai_invalid_response',
 				__( 'The AI Client returned invalid topic suggestions.', 'wp-wikipedia-factcheck' ),
@@ -596,7 +618,7 @@ class Wikimedia_Factcheck_AI {
 			);
 		}
 
-		$data = array_values(
+		$suggestions = array_values(
 			array_filter(
 				array_map(
 					static function ( $item ) {
@@ -616,20 +638,20 @@ class Wikimedia_Factcheck_AI {
 							'why'  => $why,
 						);
 					},
-					$data
+					$suggestions
 				)
 			)
 		);
 
-		set_transient( $cache_key, $data, 6 * HOUR_IN_SECONDS );
+		set_transient( $cache_key, $suggestions, 6 * HOUR_IN_SECONDS );
 		self::log_debug(
 			'suggest_topics:success',
 			array(
-				'count' => count( $data ),
+				'count' => count( $suggestions ),
 			)
 		);
 
-		return $data;
+		return $suggestions;
 	}
 
 	/**
