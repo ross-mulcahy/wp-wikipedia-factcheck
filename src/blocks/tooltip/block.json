@@ -1,0 +1,34 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "wp-wikipedia-factcheck/tooltip",
+	"title": "Wikipedia Tooltip",
+	"category": "widgets",
+	"icon": "editor-help",
+	"description": "Display a Wikipedia-based tooltip with a short summary and source link.",
+	"textdomain": "wp-wikipedia-factcheck",
+	"editorScript": "wp-wikipedia-factcheck-editor",
+	"style": "wp-wikipedia-factcheck-style",
+	"editorStyle": "wp-wikipedia-factcheck-style",
+	"attributes": {
+		"label": {
+			"type": "string",
+			"default": ""
+		},
+		"term": {
+			"type": "string",
+			"default": ""
+		},
+		"content": {
+			"type": "string",
+			"default": ""
+		},
+		"articleUrl": {
+			"type": "string",
+			"default": ""
+		}
+	},
+	"supports": {
+		"html": false
+	}
+}

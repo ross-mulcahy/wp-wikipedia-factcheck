@@ -2,41 +2,10 @@
  * WordPress dependencies
  */
 import { useState, useEffect } from '@wordpress/element';
-import { useSelect } from '@wordpress/data';
 import { Button, TextControl, Spinner } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 
-export default function SearchPanel( { onSearch, onClear, loading, disabled } ) {
-	const selectedText = useSelect( ( select ) => {
-		const { getSelectionStart, getSelectionEnd } = select( 'core/block-editor' );
-		const start = getSelectionStart();
-		const end = getSelectionEnd();
-
-		if ( ! start?.clientId || start.clientId !== end?.clientId ) {
-			return '';
-		}
-
-		const block = select( 'core/block-editor' ).getBlock( start.clientId );
-		if ( ! block ) {
-			return '';
-		}
-
-		const attributeKey = start.attributeKey;
-		if ( ! attributeKey ) {
-			return '';
-		}
-
-		const content = block.attributes[ attributeKey ] || '';
-		// Strip HTML tags for plain text extraction.
-		const plainText = content.replace( /<[^>]+>/g, '' );
-
-		if ( typeof start.offset === 'number' && typeof end.offset === 'number' && start.offset !== end.offset ) {
-			return plainText.substring( start.offset, end.offset );
-		}
-
-		return '';
-	}, [] );
-
+export default function SearchPanel( { onSearch, onClear, loading, disabled, selectedText } ) {
 	const [ term, setTerm ] = useState( '' );
 
 	useEffect( () => {

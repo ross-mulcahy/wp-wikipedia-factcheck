@@ -20,11 +20,12 @@ define( 'WP_WIKIPEDIA_FACTCHECK_PATH', plugin_dir_path( __FILE__ ) );
 define( 'WP_WIKIPEDIA_FACTCHECK_URL', plugins_url( '/', __FILE__ ) );
 
 require_once WP_WIKIPEDIA_FACTCHECK_PATH . 'includes/class-wikimedia-api.php';
+require_once WP_WIKIPEDIA_FACTCHECK_PATH . 'includes/class-wikimedia-factcheck-ai.php';
 
 /**
- * Enqueue editor assets.
+ * Register shared editor and block assets.
  */
-function wp_wikipedia_factcheck_enqueue_editor_assets(): void {
+function wp_wikipedia_factcheck_register_assets(): void {
 	$asset_file = WP_WIKIPEDIA_FACTCHECK_PATH . 'build/index.asset.php';
 
 	if ( ! file_exists( $asset_file ) ) {
@@ -33,7 +34,7 @@ function wp_wikipedia_factcheck_enqueue_editor_assets(): void {
 
 	$asset = include $asset_file;
 
-	wp_enqueue_script(
+	wp_register_script(
 		'wp-wikipedia-factcheck-editor',
 		WP_WIKIPEDIA_FACTCHECK_URL . 'build/index.js',
 		$asset['dependencies'],
@@ -41,8 +42,8 @@ function wp_wikipedia_factcheck_enqueue_editor_assets(): void {
 		true
 	);
 
-	wp_enqueue_style(
-		'wp-wikipedia-factcheck-editor-style',
+	wp_register_style(
+		'wp-wikipedia-factcheck-style',
 		WP_WIKIPEDIA_FACTCHECK_URL . 'build/index.css',
 		array(),
 		$asset['version']
@@ -52,14 +53,44 @@ function wp_wikipedia_factcheck_enqueue_editor_assets(): void {
 		'wp-wikipedia-factcheck-editor',
 		'wpWikipediaFactcheck',
 		array(
-			'restUrl'         => rest_url( 'wp-wikipedia-factcheck/v1/' ),
-			'nonce'           => wp_create_nonce( 'wp_rest' ),
-			'hasCredentials'  => wp_wikipedia_factcheck_has_credentials(),
-			'settingsUrl'     => admin_url( 'options-general.php?page=wp-wikipedia-factcheck' ),
+			'restUrl'        => rest_url( 'wp-wikipedia-factcheck/v1/' ),
+			'nonce'          => wp_create_nonce( 'wp_rest' ),
+			'hasCredentials' => wp_wikipedia_factcheck_has_credentials(),
+			'settingsUrl'    => admin_url( 'options-general.php?page=wp-wikipedia-factcheck' ),
+			'aiAvailable'    => Wikimedia_Factcheck_AI::is_available(),
 		)
 	);
 }
+add_action( 'init', 'wp_wikipedia_factcheck_register_assets' );
+
+/**
+ * Enqueue editor assets.
+ */
+function wp_wikipedia_factcheck_enqueue_editor_assets(): void {
+	wp_enqueue_script( 'wp-wikipedia-factcheck-editor' );
+	wp_enqueue_style( 'wp-wikipedia-factcheck-style' );
+}
 add_action( 'enqueue_block_editor_assets', 'wp_wikipedia_factcheck_enqueue_editor_assets' );
+
+/**
+ * Register Gutenberg blocks.
+ */
+function wp_wikipedia_factcheck_register_blocks(): void {
+	register_block_type(
+		WP_WIKIPEDIA_FACTCHECK_PATH . 'src/blocks/fact-box',
+		array(
+			'render_callback' => 'wp_wikipedia_factcheck_render_fact_box_block',
+		)
+	);
+
+	register_block_type(
+		WP_WIKIPEDIA_FACTCHECK_PATH . 'src/blocks/tooltip',
+		array(
+			'render_callback' => 'wp_wikipedia_factcheck_render_tooltip_block',
+		)
+	);
+}
+add_action( 'init', 'wp_wikipedia_factcheck_register_blocks' );
 
 /**
  * Check if Wikimedia credentials are configured.
@@ -106,6 +137,49 @@ function wp_wikipedia_factcheck_register_routes(): void {
 			'permission_callback' => function () {
 				return current_user_can( 'manage_options' );
 			},
+		)
+	);
+
+	register_rest_route(
+		'wp-wikipedia-factcheck/v1',
+		'/analyze',
+		array(
+			'methods'             => 'POST',
+			'callback'            => 'wp_wikipedia_factcheck_analyze_selection',
+			'permission_callback' => function () {
+				return current_user_can( 'edit_posts' );
+			},
+			'args'                => array(
+				'term'          => array(
+					'required'          => true,
+					'type'              => 'string',
+					'sanitize_callback' => 'sanitize_text_field',
+				),
+				'selected_text' => array(
+					'required'          => true,
+					'type'              => 'string',
+					'sanitize_callback' => 'wp_kses_post',
+				),
+			),
+		)
+	);
+
+	register_rest_route(
+		'wp-wikipedia-factcheck/v1',
+		'/interesting-facts',
+		array(
+			'methods'             => 'POST',
+			'callback'            => 'wp_wikipedia_factcheck_generate_facts',
+			'permission_callback' => function () {
+				return current_user_can( 'edit_posts' );
+			},
+			'args'                => array(
+				'term' => array(
+					'required'          => true,
+					'type'              => 'string',
+					'sanitize_callback' => 'sanitize_text_field',
+				),
+			),
 		)
 	);
 }
@@ -193,6 +267,90 @@ function wp_wikipedia_factcheck_test_connection(): WP_REST_Response {
 }
 
 /**
+ * Analyze selected text against Wikipedia using the AI Client.
+ */
+function wp_wikipedia_factcheck_analyze_selection( WP_REST_Request $request ): WP_REST_Response {
+	$term          = trim( (string) $request->get_param( 'term' ) );
+	$selected_text = trim( wp_strip_all_tags( (string) $request->get_param( 'selected_text' ) ) );
+	$language      = get_option( 'wikimedia_enterprise_language', 'en' );
+
+	if ( '' === $selected_text ) {
+		return new WP_REST_Response(
+			array(
+				'code'    => 'empty_selection',
+				'message' => __( 'Select some editor text to analyze.', 'wp-wikipedia-factcheck' ),
+			),
+			400
+		);
+	}
+
+	$api     = new Wikimedia_API();
+	$article = $api->lookup( $term, $language );
+
+	if ( is_wp_error( $article ) ) {
+		return new WP_REST_Response(
+			array(
+				'code'    => $article->get_error_code(),
+				'message' => $article->get_error_message(),
+			),
+			502
+		);
+	}
+
+	$analysis = Wikimedia_Factcheck_AI::analyze_claim( $selected_text, $article );
+	if ( is_wp_error( $analysis ) ) {
+		return new WP_REST_Response(
+			array(
+				'code'    => $analysis->get_error_code(),
+				'message' => $analysis->get_error_message(),
+			),
+			(int) ( $analysis->get_error_data()['status'] ?? 502 )
+		);
+	}
+
+	return new WP_REST_Response( $analysis, 200 );
+}
+
+/**
+ * Generate interesting fact candidates from a Wikipedia article.
+ */
+function wp_wikipedia_factcheck_generate_facts( WP_REST_Request $request ): WP_REST_Response {
+	$term     = trim( (string) $request->get_param( 'term' ) );
+	$language = get_option( 'wikimedia_enterprise_language', 'en' );
+	$api      = new Wikimedia_API();
+	$article  = $api->lookup( $term, $language );
+
+	if ( is_wp_error( $article ) ) {
+		return new WP_REST_Response(
+			array(
+				'code'    => $article->get_error_code(),
+				'message' => $article->get_error_message(),
+			),
+			502
+		);
+	}
+
+	$facts = Wikimedia_Factcheck_AI::generate_interesting_facts( $article );
+	if ( is_wp_error( $facts ) ) {
+		return new WP_REST_Response(
+			array(
+				'code'    => $facts->get_error_code(),
+				'message' => $facts->get_error_message(),
+			),
+			(int) ( $facts->get_error_data()['status'] ?? 502 )
+		);
+	}
+
+	return new WP_REST_Response(
+		array(
+			'article' => $article,
+			'facts'   => $facts,
+		),
+		200
+	);
+}
+
+/**
  * Preserve the exact Wikimedia password while removing WordPress slashes.
  *
  * @param string $value Raw password value.
@@ -200,6 +358,73 @@ function wp_wikipedia_factcheck_test_connection(): WP_REST_Response {
  */
 function wp_wikipedia_factcheck_sanitize_password( string $value ): string {
 	return wp_unslash( $value );
+}
+
+/**
+ * Render a fact box block.
+ */
+function wp_wikipedia_factcheck_render_fact_box_block( array $attributes ): string {
+	$headline    = trim( (string) ( $attributes['headline'] ?? '' ) );
+	$fact        = trim( (string) ( $attributes['fact'] ?? '' ) );
+	$term        = trim( (string) ( $attributes['term'] ?? '' ) );
+	$article_url = esc_url( (string) ( $attributes['articleUrl'] ?? '' ) );
+
+	if ( '' === $fact ) {
+		return '';
+	}
+
+	$title = '' !== $headline ? $headline : __( 'Wikipedia Fact', 'wp-wikipedia-factcheck' );
+
+	ob_start();
+	?>
+	<aside <?php echo get_block_wrapper_attributes( array( 'class' => 'wp-wikipedia-factcheck-fact-box' ) ); ?>>
+		<span class="wp-wikipedia-factcheck-fact-box__eyebrow"><?php esc_html_e( 'Fact box', 'wp-wikipedia-factcheck' ); ?></span>
+		<h3 class="wp-wikipedia-factcheck-fact-box__title"><?php echo esc_html( $title ); ?></h3>
+		<p class="wp-wikipedia-factcheck-fact-box__fact"><?php echo esc_html( $fact ); ?></p>
+		<?php if ( '' !== $term || '' !== $article_url ) : ?>
+			<p class="wp-wikipedia-factcheck-fact-box__source">
+				<?php esc_html_e( 'Source:', 'wp-wikipedia-factcheck' ); ?>
+				<?php if ( '' !== $article_url ) : ?>
+					<a href="<?php echo esc_url( $article_url ); ?>"><?php echo esc_html( $term ?: __( 'Wikipedia article', 'wp-wikipedia-factcheck' ) ); ?></a>
+				<?php else : ?>
+					<?php echo esc_html( $term ); ?>
+				<?php endif; ?>
+			</p>
+		<?php endif; ?>
+	</aside>
+	<?php
+	return (string) ob_get_clean();
+}
+
+/**
+ * Render a tooltip block.
+ */
+function wp_wikipedia_factcheck_render_tooltip_block( array $attributes ): string {
+	$label       = trim( (string) ( $attributes['label'] ?? '' ) );
+	$term        = trim( (string) ( $attributes['term'] ?? '' ) );
+	$content     = trim( (string) ( $attributes['content'] ?? '' ) );
+	$article_url = esc_url( (string) ( $attributes['articleUrl'] ?? '' ) );
+
+	if ( '' === $label || '' === $content ) {
+		return '';
+	}
+
+	ob_start();
+	?>
+	<span <?php echo get_block_wrapper_attributes( array( 'class' => 'wp-wikipedia-factcheck-tooltip' ) ); ?>>
+		<span class="wp-wikipedia-factcheck-tooltip__label" tabindex="0"><?php echo esc_html( $label ); ?></span>
+		<span class="wp-wikipedia-factcheck-tooltip__bubble" role="note">
+			<strong class="wp-wikipedia-factcheck-tooltip__term"><?php echo esc_html( $term ?: $label ); ?></strong>
+			<span class="wp-wikipedia-factcheck-tooltip__content"><?php echo esc_html( $content ); ?></span>
+			<?php if ( '' !== $article_url ) : ?>
+				<a class="wp-wikipedia-factcheck-tooltip__link" href="<?php echo esc_url( $article_url ); ?>">
+					<?php esc_html_e( 'Read on Wikipedia', 'wp-wikipedia-factcheck' ); ?>
+				</a>
+			<?php endif; ?>
+		</span>
+	</span>
+	<?php
+	return (string) ob_get_clean();
 }
 
 /**
