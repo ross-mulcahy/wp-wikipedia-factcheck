@@ -1,5 +1,9 @@
 {
 	"$schema": "https://playground.wordpress.net/blueprint-schema.json",
+	"meta": {
+		"title": "Wikipedia Fact-Check 1.0.4",
+		"author": "Ross Mulcahy"
+	},
 	"landingPage": "/wp-admin/post-new.php",
 	"preferredVersions": {
 		"php": "8.2",
