@@ -1,149 +1,549 @@
 .wp-wikipedia-factcheck-sidebar {
-	padding: 16px;
+	--wp-wikipedia-factcheck-border: #d7dbe0;
+	--wp-wikipedia-factcheck-text: #18212b;
+	--wp-wikipedia-factcheck-subtle: #61707f;
+	--wp-wikipedia-factcheck-surface: #f3f5f6;
+	--wp-wikipedia-factcheck-surface-strong: #ffffff;
+	--wp-wikipedia-factcheck-accent: #336c84;
+	--wp-wikipedia-factcheck-accent-soft: #e8f1f5;
+	--wp-wikipedia-factcheck-warning: #8a5836;
+	--wp-wikipedia-factcheck-warning-soft: #f7ede5;
+	--wp-wikipedia-factcheck-space-1: 8px;
+	--wp-wikipedia-factcheck-space-2: 12px;
+	--wp-wikipedia-factcheck-space-3: 16px;
+	--wp-wikipedia-factcheck-space-4: 20px;
+
+	padding: var( --wp-wikipedia-factcheck-space-3 );
+	color: var( --wp-wikipedia-factcheck-text );
+	background:
+		radial-gradient(circle at top right, #eef5f8 0, transparent 40%),
+		linear-gradient(180deg, #fbfcfc 0%, #f2f4f5 100%);
 
 	.components-notice {
 		margin: 0 0 16px;
 	}
 }
 
-// Search panel
+.wp-wikipedia-factcheck-intro {
+	margin-bottom: var( --wp-wikipedia-factcheck-space-3 );
+	padding: 0;
+
+	p {
+		margin: 0;
+		font-size: 11px;
+		line-height: 1.6;
+		color: var( --wp-wikipedia-factcheck-subtle );
+	}
+}
+
 .wp-wikipedia-factcheck-search {
-	margin-bottom: 16px;
+	margin-bottom: var( --wp-wikipedia-factcheck-space-3 );
+	padding: var( --wp-wikipedia-factcheck-space-3 );
+	border: 1px solid rgba( 23, 42, 58, 0.08 );
+	border-radius: 16px;
+	background: var( --wp-wikipedia-factcheck-surface-strong );
+	box-shadow: 0 10px 24px rgba( 15, 23, 42, 0.05 );
+
+	.components-base-control {
+		margin-bottom: 0;
+	}
+
+	.components-base-control__label {
+		margin-bottom: var( --wp-wikipedia-factcheck-space-1 );
+		font-size: 10px;
+		font-weight: 700;
+		letter-spacing: 0.08em;
+		color: var( --wp-wikipedia-factcheck-subtle );
+	}
 
 	.components-text-control__input {
 		width: 100%;
+		border-radius: 10px;
+		min-height: 42px;
 	}
 }
 
 .wp-wikipedia-factcheck-use-selection {
-	display: block;
-	margin-bottom: 8px;
-	font-size: 12px;
+	display: inline-flex;
+	margin: var( --wp-wikipedia-factcheck-space-1 ) 0 0;
+	padding: 0;
+	font-size: 11px;
 }
 
 .wp-wikipedia-factcheck-search-actions {
 	display: flex;
 	align-items: center;
-	gap: 12px;
-	margin-top: 8px;
+	gap: var( --wp-wikipedia-factcheck-space-1 );
+	margin-top: var( --wp-wikipedia-factcheck-space-2 );
+
+	.components-button.is-primary {
+		border-radius: 999px;
+		padding-inline: 16px;
+	}
 
 	.components-spinner {
 		margin: 0;
 	}
 }
 
-// Result panel
 .wp-wikipedia-factcheck-result {
-	border-top: 1px solid #ddd;
-	padding-top: 16px;
+	display: flex;
+	flex-direction: column;
+	gap: var( --wp-wikipedia-factcheck-space-3 );
 }
 
-.wp-wikipedia-factcheck-result-header {
-	margin-bottom: 12px;
+.wp-wikipedia-factcheck-hero {
+	position: relative;
+	overflow: hidden;
+	border-radius: 18px;
+	background: #41515b;
+	box-shadow: 0 12px 28px rgba( 16, 33, 45, 0.12 );
+}
+
+.wp-wikipedia-factcheck-signal-card__eyebrow {
+	display: inline-flex;
+	align-items: center;
+	padding: 5px 10px;
+	border-radius: 999px;
+	font-size: 9px;
+	font-weight: 700;
+	letter-spacing: 0.05em;
+	text-transform: uppercase;
+
+	&--good {
+		background: var( --wp-wikipedia-factcheck-accent-soft );
+		color: var( --wp-wikipedia-factcheck-accent );
+	}
+
+	&--watch,
+	&--caution {
+		background: var( --wp-wikipedia-factcheck-warning-soft );
+		color: var( --wp-wikipedia-factcheck-warning );
+	}
+}
+
+.wp-wikipedia-factcheck-hero__media {
+	position: absolute;
+	inset: 0;
+}
+
+.wp-wikipedia-factcheck-hero__image {
+	display: block;
+	width: 100%;
+	height: 100%;
+	min-height: 232px;
+	object-fit: cover;
+	filter: saturate( 0.85 );
+}
+
+.wp-wikipedia-factcheck-hero__image--fallback {
+	background:
+		radial-gradient(circle at 20% 20%, rgba( 255, 255, 255, 0.18 ), transparent 28%),
+		linear-gradient(135deg, #0b5c7a 0%, #15334a 48%, #08131c 100%);
+}
+
+.wp-wikipedia-factcheck-hero__overlay {
+	position: absolute;
+	inset: 0;
+	background:
+		linear-gradient(180deg, rgba( 24, 35, 42, 0.16 ) 0%, rgba( 24, 35, 42, 0.52 ) 52%, rgba( 24, 35, 42, 0.78 ) 100%),
+		linear-gradient(90deg, rgba( 87, 121, 138, 0.1 ) 0%, transparent 42%);
+}
+
+.wp-wikipedia-factcheck-hero__body {
+	position: relative;
+	z-index: 1;
+	display: flex;
+	flex-direction: column;
+	justify-content: flex-end;
+	min-height: 232px;
+	padding: var( --wp-wikipedia-factcheck-space-3 );
+	color: #fff;
+}
+
+.wp-wikipedia-factcheck-hero__topline {
+	display: flex;
+	justify-content: space-between;
+	align-items: flex-start;
+	gap: var( --wp-wikipedia-factcheck-space-1 );
+	margin-bottom: auto;
+}
+
+.wp-wikipedia-factcheck-result-header__main {
+	min-width: 0;
+	overflow-wrap: anywhere;
 
 	h3 {
-		margin: 0 0 4px;
-		font-size: 14px;
-		line-height: 1.4;
+		margin: 0 0 var( --wp-wikipedia-factcheck-space-1 );
+		font-size: 18px;
+		line-height: 1.08;
+		letter-spacing: -0.02em;
+		overflow-wrap: anywhere;
+		color: #fff;
 	}
 }
 
-.wp-wikipedia-factcheck-date {
-	display: block;
-	font-size: 12px;
-	color: #757575;
-	margin-bottom: 6px;
+.wp-wikipedia-factcheck-hero__summary {
+	max-width: none;
+	margin: 0 0 var( --wp-wikipedia-factcheck-space-2 ) !important;
+	font-size: 12px !important;
+	line-height: 1.6 !important;
+	color: rgba( 255, 255, 255, 0.9 ) !important;
+	text-wrap: pretty;
 }
 
-// Image
-.wp-wikipedia-factcheck-image {
-	text-align: center;
-	margin-bottom: 12px;
-
-	img {
-		max-width: 100%;
-		max-height: 120px;
-		height: auto;
-		border-radius: 4px;
-	}
-}
-
-// Abstract
-.wp-wikipedia-factcheck-abstract {
-	margin-bottom: 12px;
-	font-size: 13px;
+.wp-wikipedia-factcheck-result-links {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px 10px;
+	font-size: 11px;
 	line-height: 1.5;
 
-	p {
-		margin: 0 0 6px;
+	a {
+		color: #eef7fb !important;
+		text-decoration: none;
+		overflow-wrap: anywhere;
 	}
 }
 
-// Categories
+.wp-wikipedia-factcheck-metrics {
+	display: grid;
+	grid-template-columns: repeat( 2, minmax( 0, 1fr ) );
+	gap: var( --wp-wikipedia-factcheck-space-1 );
+	margin-top: var( --wp-wikipedia-factcheck-space-2 );
+}
+
+.wp-wikipedia-factcheck-metric {
+	padding: var( --wp-wikipedia-factcheck-space-2 );
+	border-radius: 14px;
+	background: rgba( 255, 255, 255, 0.14 );
+	border: 1px solid rgba( 255, 255, 255, 0.14 );
+	backdrop-filter: blur( 6px );
+	min-width: 0;
+
+	strong,
+	span {
+		display: block;
+		overflow-wrap: anywhere;
+	}
+
+	strong {
+		margin-bottom: 4px;
+		font-size: 12px;
+		line-height: 1.35;
+		color: #fff;
+		text-wrap: balance;
+	}
+
+	span {
+		font-size: 11px;
+		line-height: 1.5;
+		color: rgba( 255, 255, 255, 0.82 );
+	}
+}
+
+.wp-wikipedia-factcheck-metric__label {
+	margin-bottom: 5px;
+	font-size: 9px;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.08em;
+	color: rgba( 255, 255, 255, 0.64 );
+}
+
+.wp-wikipedia-factcheck-section {
+	padding: var( --wp-wikipedia-factcheck-space-3 );
+	border-radius: 16px;
+	border: 1px solid rgba( 23, 42, 58, 0.08 );
+	background: var( --wp-wikipedia-factcheck-surface-strong );
+	box-shadow: 0 10px 24px rgba( 15, 23, 42, 0.045 );
+
+	h4 {
+		margin: 0 0 var( --wp-wikipedia-factcheck-space-2 );
+		font-size: 10px;
+		font-weight: 700;
+		letter-spacing: 0.1em;
+		text-transform: uppercase;
+		color: var( --wp-wikipedia-factcheck-subtle );
+	}
+
+	p {
+		margin: 0;
+		font-size: 12px;
+		line-height: 1.7;
+		overflow-wrap: anywhere;
+	}
+}
+
+.wp-wikipedia-factcheck-lead {
+	margin-bottom: var( --wp-wikipedia-factcheck-space-2 ) !important;
+	font-size: 14px !important;
+	line-height: 1.55 !important;
+	letter-spacing: -0.01em;
+	text-wrap: pretty;
+}
+
+.wp-wikipedia-factcheck-list {
+	margin: 0;
+	padding-left: 18px;
+
+	li {
+		margin-bottom: var( --wp-wikipedia-factcheck-space-2 );
+		font-size: 12px;
+		line-height: 1.65;
+		overflow-wrap: anywhere;
+	}
+
+	li:last-child {
+		margin-bottom: 0;
+	}
+}
+
+.wp-wikipedia-factcheck-list--warning li {
+	color: var( --wp-wikipedia-factcheck-warning );
+}
+
+.wp-wikipedia-factcheck-selection-preview,
+.wp-wikipedia-factcheck-analysis__summary {
+	margin-bottom: var( --wp-wikipedia-factcheck-space-2 ) !important;
+}
+
+.wp-wikipedia-factcheck-analysis {
+	margin-top: var( --wp-wikipedia-factcheck-space-2 );
+}
+
 .wp-wikipedia-factcheck-categories {
 	display: flex;
 	flex-wrap: wrap;
-	gap: 6px;
-	margin-bottom: 12px;
+	gap: 8px;
 }
 
 .wp-wikipedia-factcheck-category-pill {
-	display: inline-block;
-	padding: 2px 10px;
-	font-size: 12px;
-	background: #f0f0f0;
-	border-radius: 12px;
-	color: #1e1e1e;
-}
-
-// Wikidata
-.wp-wikipedia-factcheck-wikidata {
-	font-size: 12px;
-	margin-bottom: 12px;
-	color: #757575;
-}
-
-// License
-.wp-wikipedia-factcheck-license {
-	font-size: 11px;
-	color: #757575;
-	border-top: 1px solid #ddd;
-	padding-top: 12px;
-	margin-top: 12px;
-}
-
-// Credibility badge
-.wp-wikipedia-factcheck-badge {
-	display: inline-block;
-	padding: 2px 8px;
-	font-size: 11px;
+	display: inline-flex;
+	align-items: center;
+	padding: 6px 10px;
+	font-size: 10px;
 	font-weight: 600;
-	border-radius: 10px;
-	line-height: 1.4;
+	letter-spacing: 0.01em;
+	line-height: 1.35;
+	background: #eef3f5;
+	border-radius: 999px;
+	color: #425c6b;
+}
+
+.wp-wikipedia-factcheck-license {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	padding: 2px 4px 8px;
+	font-size: 11px;
+	line-height: 1.5;
+	color: var( --wp-wikipedia-factcheck-subtle );
+	overflow-wrap: anywhere;
+}
+
+.wp-wikipedia-factcheck-badge {
+	display: inline-flex;
+	align-items: center;
+	padding: 5px 10px;
+	font-size: 10px;
+	font-weight: 700;
+	border-radius: 999px;
+	line-height: 1.3;
+	text-align: center;
 	cursor: default;
+	box-shadow: inset 0 0 0 1px rgba( 255, 255, 255, 0.2 );
 
 	&--grey {
-		background: #ddd;
-		color: #555;
+		background: rgba( 219, 224, 229, 0.96 );
+		color: #344150;
 	}
 
 	&--green {
-		background: #d4edda;
-		color: #155724;
+		background: rgba( 224, 241, 228, 0.98 );
+		color: #166534;
 	}
 
 	&--amber {
-		background: #fff3cd;
-		color: #856404;
+		background: rgba( 247, 231, 211, 0.98 );
+		color: #7b4d2b;
 	}
 
 	&--red {
-		background: #f8d7da;
-		color: #721c24;
+		background: rgba( 247, 224, 224, 0.98 );
+		color: #8e3f3f;
 	}
 }
 
-// Not-found notice
 .wp-wikipedia-factcheck-not-found {
 	margin-top: 8px;
+}
+
+.wp-wikipedia-factcheck-block-editor-card {
+	padding: 16px;
+	border: 1px solid var( --wp-wikipedia-factcheck-border );
+	border-radius: 16px;
+	background: var( --wp-wikipedia-factcheck-surface-strong );
+
+	.components-base-control:last-of-type {
+		margin-bottom: 12px;
+	}
+}
+
+.wp-wikipedia-factcheck-block-editor-card__eyebrow {
+	margin-bottom: 12px;
+	font-size: 11px;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.08em;
+	color: var( --wp-wikipedia-factcheck-subtle );
+}
+
+.wp-wikipedia-factcheck-block-editor-card__actions {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	margin-top: 8px;
+}
+
+.wp-wikipedia-factcheck-block-editor-card__help {
+	margin: 12px 0 0;
+	font-size: 12px;
+	color: var( --wp-wikipedia-factcheck-subtle );
+}
+
+.wp-wikipedia-factcheck-tooltip-preview {
+	position: relative;
+	margin: 16px 0 0;
+	padding-top: 4px;
+}
+
+.wp-wikipedia-factcheck-tooltip-preview__label {
+	display: inline-flex;
+	border-bottom: 1px dashed var( --wp-wikipedia-factcheck-accent );
+	color: var( --wp-wikipedia-factcheck-accent );
+	font-weight: 600;
+}
+
+.wp-wikipedia-factcheck-tooltip-preview__bubble {
+	display: block;
+	margin-top: 8px;
+	padding: 12px;
+	border-radius: 12px;
+	background: #172033;
+	color: #fff;
+	font-size: 12px;
+	line-height: 1.5;
+}
+
+.wp-wikipedia-factcheck-fact-box {
+	padding: 18px;
+	border-radius: 18px;
+	border: 1px solid #cde5e1;
+	background: linear-gradient( 180deg, #f7fcfb 0%, #eff7f5 100% );
+	box-shadow: 0 12px 30px rgba( 15, 118, 110, 0.08 );
+}
+
+.wp-wikipedia-factcheck-fact-box__eyebrow {
+	display: inline-flex;
+	margin-bottom: 10px;
+	font-size: 11px;
+	font-weight: 700;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: var( --wp-wikipedia-factcheck-accent );
+}
+
+.wp-wikipedia-factcheck-fact-box__title {
+	margin: 0 0 10px;
+	font-size: 22px;
+	line-height: 1.15;
+}
+
+.wp-wikipedia-factcheck-fact-box__fact {
+	margin: 0 0 12px;
+	font-size: 16px;
+	line-height: 1.6;
+}
+
+.wp-wikipedia-factcheck-fact-box__source {
+	margin: 0;
+	font-size: 12px;
+	color: var( --wp-wikipedia-factcheck-subtle );
+}
+
+.wp-wikipedia-factcheck-tooltip {
+	position: relative;
+	display: inline-flex;
+}
+
+.wp-wikipedia-factcheck-tooltip__label {
+	display: inline-flex;
+	cursor: help;
+	border-bottom: 1px dashed var( --wp-wikipedia-factcheck-accent );
+	color: var( --wp-wikipedia-factcheck-accent );
+	font-weight: 600;
+}
+
+.wp-wikipedia-factcheck-tooltip__bubble {
+	position: absolute;
+	left: 0;
+	top: calc( 100% + 10px );
+	z-index: 20;
+	width: min( 320px, 80vw );
+	padding: 14px;
+	border-radius: 14px;
+	background: #172033;
+	color: #fff;
+	box-shadow: 0 18px 38px rgba( 15, 23, 42, 0.25 );
+	opacity: 0;
+	transform: translateY( 6px );
+	pointer-events: none;
+	transition: opacity 160ms ease, transform 160ms ease;
+}
+
+.wp-wikipedia-factcheck-tooltip:hover .wp-wikipedia-factcheck-tooltip__bubble,
+.wp-wikipedia-factcheck-tooltip:focus-within .wp-wikipedia-factcheck-tooltip__bubble {
+	opacity: 1;
+	transform: translateY( 0 );
+	pointer-events: auto;
+}
+
+.wp-wikipedia-factcheck-tooltip__term {
+	display: block;
+	margin-bottom: 6px;
+	font-size: 13px;
+}
+
+.wp-wikipedia-factcheck-tooltip__content {
+	display: block;
+	font-size: 12px;
+	line-height: 1.55;
+}
+
+.wp-wikipedia-factcheck-tooltip__link {
+	display: inline-flex;
+	margin-top: 10px;
+	color: #b8f1ea;
+	font-size: 12px;
+}
+
+@media ( max-width: 480px ) {
+	.wp-wikipedia-factcheck-metrics {
+		grid-template-columns: 1fr;
+	}
+
+	.wp-wikipedia-factcheck-hero__body {
+		min-height: 220px;
+		padding: var( --wp-wikipedia-factcheck-space-2 );
+	}
+
+	.wp-wikipedia-factcheck-result-header__main h3 {
+		font-size: 17px;
+	}
+
+	.wp-wikipedia-factcheck-hero__topline {
+		flex-direction: column;
+		align-items: flex-start;
+	}
 }
