@@ -63,6 +63,10 @@ class Wikimedia_Factcheck_AI {
 			->using_system_instruction( $system_instruction )
 			->using_temperature( $temperature );
 
+		if ( null !== $single_preference && method_exists( $builder, 'using_provider' ) ) {
+			$builder = $builder->using_provider( $single_preference[0] );
+		}
+
 		if ( null !== $schema ) {
 			$builder = $builder->as_json_response( $schema );
 		}
@@ -76,6 +80,44 @@ class Wikimedia_Factcheck_AI {
 		}
 
 		return $builder;
+	}
+
+	/**
+	 * Wrap a provider-specific AI error in a user-facing response shape.
+	 *
+	 * @param WP_Error $error      Original provider error.
+	 * @param string   $provider   Provider slug.
+	 * @param string   $model      Model identifier.
+	 * @param bool     $final_try  Whether this was the last provider attempt.
+	 * @return WP_Error
+	 */
+	private static function wrap_provider_error( WP_Error $error, string $provider, string $model, bool $final_try = false ): WP_Error {
+		$message = sprintf(
+			/* translators: 1: provider name, 2: model name, 3: provider error */
+			__( '%1$s (%2$s) failed: %3$s', 'wp-wikipedia-factcheck' ),
+			ucfirst( $provider ),
+			$model,
+			$error->get_error_message()
+		);
+
+		if ( $final_try ) {
+			$message = sprintf(
+				/* translators: %s: provider failure summary */
+				__( 'All configured AI providers failed. Last error: %s', 'wp-wikipedia-factcheck' ),
+				$message
+			);
+		}
+
+		$data = $error->get_error_data();
+		if ( ! is_array( $data ) ) {
+			$data = array();
+		}
+
+		$data['status']   = 400;
+		$data['provider'] = $provider;
+		$data['model']    = $model;
+
+		return new WP_Error( $error->get_error_code(), $message, $data );
 	}
 
 	/**
@@ -116,7 +158,9 @@ class Wikimedia_Factcheck_AI {
 		$preferences = self::get_text_model_preferences();
 		$last_error  = null;
 
-		foreach ( $preferences as $preference ) {
+		$total_preferences = count( $preferences );
+
+		foreach ( $preferences as $index => $preference ) {
 			$builder = self::get_prompt_builder( $prompt );
 			if ( is_wp_error( $builder ) ) {
 				self::log_debug(
@@ -177,15 +221,11 @@ class Wikimedia_Factcheck_AI {
 						'model'    => $preference[1],
 					)
 				);
-				$last_error = new WP_Error(
-					$result->get_error_code(),
-					sprintf(
-						/* translators: 1: provider name, 2: provider error */
-						__( '%1$s failed: %2$s', 'wp-wikipedia-factcheck' ),
-						ucfirst( $preference[0] ),
-						$result->get_error_message()
-					),
-					$result->get_error_data()
+				$last_error = self::wrap_provider_error(
+					$result,
+					$preference[0],
+					$preference[1],
+					$index === ( $total_preferences - 1 )
 				);
 
 				if ( self::should_retry_provider_error( $result ) ) {
@@ -203,7 +243,7 @@ class Wikimedia_Factcheck_AI {
 			: new WP_Error(
 				'ai_generation_failed',
 				__( 'All configured AI providers failed to generate a response.', 'wp-wikipedia-factcheck' ),
-				array( 'status' => 502 )
+				array( 'status' => 400 )
 			);
 	}
 
@@ -406,7 +446,7 @@ class Wikimedia_Factcheck_AI {
 			return new WP_Error(
 				'ai_invalid_response',
 				__( 'The AI Client returned an invalid response.', 'wp-wikipedia-factcheck' ),
-				array( 'status' => 502 )
+				array( 'status' => 422 )
 			);
 		}
 
@@ -476,7 +516,7 @@ class Wikimedia_Factcheck_AI {
 			return new WP_Error(
 				'ai_invalid_response',
 				__( 'The AI Client returned an invalid response.', 'wp-wikipedia-factcheck' ),
-				array( 'status' => 502 )
+				array( 'status' => 422 )
 			);
 		}
 
