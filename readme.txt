@@ -14,6 +14,8 @@ Wikipedia-powered fact-check panel for the Gutenberg block editor using the Wiki
 
 WP Wikipedia Fact-Check adds a research sidebar to the WordPress block editor. Look up Wikipedia articles, review credibility cues, and generate AI-powered research briefings without leaving the editor.
 
+Built on the [Wikimedia Enterprise API](https://enterprise.wikimedia.com/).
+
 **Features**
 
 * **Editor sidebar panel** -- search Wikipedia directly from the block editor.
@@ -27,11 +29,47 @@ WP Wikipedia Fact-Check adds a research sidebar to the WordPress block editor. L
 * **Response caching** -- lookups and AI results are cached to reduce repeat requests.
 * **Fact Box block** -- insert a compact Wikipedia fact box into posts.
 * **Tooltip block** -- add inline Wikipedia-sourced tooltips to highlighted phrases.
+* **Connection test** -- verify your API credentials from the settings page.
 
 **Requirements**
 
 * [Wikimedia Enterprise](https://enterprise.wikimedia.com/) API credentials.
 * For AI features: WordPress 7.0+ with the WordPress AI Client, or WordPress 6.9.x with the [AI Experiments plugin](https://wordpress.org/plugins/ai/) and at least one configured provider.
+
+**Usage**
+
+1. Open any post or page in the block editor.
+2. Click the book icon in the editor toolbar or find Wikipedia Fact-Check in the sidebar panel list.
+3. Type a search term, or select text in the editor and it will auto-populate.
+4. Click Search to look up the term on Wikipedia.
+5. Review the article summary, credibility badge, topic tags, and source links.
+6. Click Suggest from draft to let AI propose Wikipedia topics based on the current article content.
+7. Click one of the suggested topics to open the Wikipedia match and generate an AI Research Brief.
+
+**How it works**
+
+The plugin registers a Gutenberg sidebar panel that communicates with several REST API endpoints:
+
+* `/wp-wikipedia-factcheck/v1/lookup` (POST, `edit_posts`) -- Search for a Wikipedia article by term.
+* `/wp-wikipedia-factcheck/v1/test-connection` (POST, `manage_options`) -- Verify API credentials.
+* `/wp-wikipedia-factcheck/v1/suggest-topics` (POST, `edit_posts`) -- Use AI to suggest Wikipedia search terms from the current draft.
+* `/wp-wikipedia-factcheck/v1/briefing` (POST, `edit_posts`) -- Generate an AI research briefing for a Wikipedia match.
+* `/wp-wikipedia-factcheck/v1/analyze` (POST, `edit_posts`) -- Compare selected draft text against a Wikipedia summary.
+* `/wp-wikipedia-factcheck/v1/interesting-facts` (POST, `edit_posts`) -- Generate fact candidates from a Wikipedia article.
+* `/wp-wikipedia-factcheck/v1/ai-health` (POST, `manage_options`) -- Return AI client diagnostics for debugging.
+
+Wikipedia API calls are made server-side. Credentials are never exposed to the browser.
+
+When multiple AI providers are configured, the plugin prefers OpenAI first, then Google, then Anthropic.
+
+**Credibility scoring**
+
+The credibility badge uses Wikimedia's revert risk score -- the probability that the current article revision will be reverted:
+
+* 0 -- 0.15: High credibility (green)
+* 0.15 -- 0.40: Moderate (amber)
+* 0.40+: Flagged (red)
+* No data: No score (grey)
 
 == Installation ==
 
