@@ -8,10 +8,21 @@ export async function requestWikipediaFactcheck( path, body = {} ) {
 		body: JSON.stringify( body ),
 	} );
 
-	const data = await response.json();
+	const contentType = response.headers.get( 'content-type' ) || '';
+	let data;
+
+	if ( contentType.includes( 'application/json' ) ) {
+		data = await response.json();
+	} else {
+		const text = await response.text();
+		data = { message: text };
+	}
 
 	if ( ! response.ok ) {
-		throw new Error( data?.message || 'Request failed.' );
+		const fallbackMessage = typeof data?.message === 'string'
+			? data.message.replace( /<[^>]+>/g, ' ' ).replace( /\s+/g, ' ' ).trim()
+			: '';
+		throw new Error( fallbackMessage || `Request failed with status ${ response.status }.` );
 	}
 
 	return data;

@@ -2,7 +2,7 @@
 /**
  * Plugin Name: WP Wikipedia Fact-Check
  * Description: Wikipedia-powered fact-check panel for the Gutenberg block editor using the Wikimedia Enterprise API.
- * Version: 1.0.8
+ * Version: 1.0.9
  * Requires at least: 6.4
  * Requires PHP: 8.1
  * Author: Ross Mulcahy
@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'WP_WIKIPEDIA_FACTCHECK_VERSION', '1.0.8' );
+define( 'WP_WIKIPEDIA_FACTCHECK_VERSION', '1.0.9' );
 define( 'WP_WIKIPEDIA_FACTCHECK_PATH', plugin_dir_path( __FILE__ ) );
 define( 'WP_WIKIPEDIA_FACTCHECK_URL', plugins_url( '/', __FILE__ ) );
 
@@ -276,84 +276,104 @@ function wp_wikipedia_factcheck_test_connection(): WP_REST_Response {
  * Analyze selected text against Wikipedia using the AI Client.
  */
 function wp_wikipedia_factcheck_analyze_selection( WP_REST_Request $request ): WP_REST_Response {
-	$term          = trim( (string) $request->get_param( 'term' ) );
-	$selected_text = trim( wp_strip_all_tags( (string) $request->get_param( 'selected_text' ) ) );
-	$language      = get_option( 'wikimedia_enterprise_language', 'en' );
+	try {
+		$term          = trim( (string) $request->get_param( 'term' ) );
+		$selected_text = trim( wp_strip_all_tags( (string) $request->get_param( 'selected_text' ) ) );
+		$language      = get_option( 'wikimedia_enterprise_language', 'en' );
 
-	if ( '' === $selected_text ) {
+		if ( '' === $selected_text ) {
+			return new WP_REST_Response(
+				array(
+					'code'    => 'empty_selection',
+					'message' => __( 'Select some editor text to analyze.', 'wp-wikipedia-factcheck' ),
+				),
+				400
+			);
+		}
+
+		$api     = new Wikimedia_API();
+		$article = $api->lookup( $term, $language );
+
+		if ( is_wp_error( $article ) ) {
+			return new WP_REST_Response(
+				array(
+					'code'    => $article->get_error_code(),
+					'message' => $article->get_error_message(),
+				),
+				502
+			);
+		}
+
+		$analysis = Wikimedia_Factcheck_AI::analyze_claim( $selected_text, $article );
+		if ( is_wp_error( $analysis ) ) {
+			return new WP_REST_Response(
+				array(
+					'code'    => $analysis->get_error_code(),
+					'message' => $analysis->get_error_message(),
+				),
+				(int) ( $analysis->get_error_data()['status'] ?? 502 )
+			);
+		}
+
+		return new WP_REST_Response( $analysis, 200 );
+	} catch ( Throwable $exception ) {
 		return new WP_REST_Response(
 			array(
-				'code'    => 'empty_selection',
-				'message' => __( 'Select some editor text to analyze.', 'wp-wikipedia-factcheck' ),
+				'code'    => 'analysis_failed',
+				'message' => $exception->getMessage(),
 			),
-			400
+			500
 		);
 	}
-
-	$api     = new Wikimedia_API();
-	$article = $api->lookup( $term, $language );
-
-	if ( is_wp_error( $article ) ) {
-		return new WP_REST_Response(
-			array(
-				'code'    => $article->get_error_code(),
-				'message' => $article->get_error_message(),
-			),
-			502
-		);
-	}
-
-	$analysis = Wikimedia_Factcheck_AI::analyze_claim( $selected_text, $article );
-	if ( is_wp_error( $analysis ) ) {
-		return new WP_REST_Response(
-			array(
-				'code'    => $analysis->get_error_code(),
-				'message' => $analysis->get_error_message(),
-			),
-			(int) ( $analysis->get_error_data()['status'] ?? 502 )
-		);
-	}
-
-	return new WP_REST_Response( $analysis, 200 );
 }
 
 /**
  * Generate interesting fact candidates from a Wikipedia article.
  */
 function wp_wikipedia_factcheck_generate_facts( WP_REST_Request $request ): WP_REST_Response {
-	$term     = trim( (string) $request->get_param( 'term' ) );
-	$language = get_option( 'wikimedia_enterprise_language', 'en' );
-	$api      = new Wikimedia_API();
-	$article  = $api->lookup( $term, $language );
+	try {
+		$term     = trim( (string) $request->get_param( 'term' ) );
+		$language = get_option( 'wikimedia_enterprise_language', 'en' );
+		$api      = new Wikimedia_API();
+		$article  = $api->lookup( $term, $language );
 
-	if ( is_wp_error( $article ) ) {
+		if ( is_wp_error( $article ) ) {
+			return new WP_REST_Response(
+				array(
+					'code'    => $article->get_error_code(),
+					'message' => $article->get_error_message(),
+				),
+				502
+			);
+		}
+
+		$facts = Wikimedia_Factcheck_AI::generate_interesting_facts( $article );
+		if ( is_wp_error( $facts ) ) {
+			return new WP_REST_Response(
+				array(
+					'code'    => $facts->get_error_code(),
+					'message' => $facts->get_error_message(),
+				),
+				(int) ( $facts->get_error_data()['status'] ?? 502 )
+			);
+		}
+
 		return new WP_REST_Response(
 			array(
-				'code'    => $article->get_error_code(),
-				'message' => $article->get_error_message(),
+				'article' => $article,
+				'facts'   => $facts,
 			),
-			502
+			200
 		);
-	}
-
-	$facts = Wikimedia_Factcheck_AI::generate_interesting_facts( $article );
-	if ( is_wp_error( $facts ) ) {
+	} catch ( Throwable $exception ) {
 		return new WP_REST_Response(
 			array(
-				'code'    => $facts->get_error_code(),
-				'message' => $facts->get_error_message(),
+				'code'    => 'interesting_facts_failed',
+				'message' => $exception->getMessage(),
 			),
-			(int) ( $facts->get_error_data()['status'] ?? 502 )
+			500
 		);
 	}
-
-	return new WP_REST_Response(
-		array(
-			'article' => $article,
-			'facts'   => $facts,
-		),
-		200
-	);
 }
 
 /**
