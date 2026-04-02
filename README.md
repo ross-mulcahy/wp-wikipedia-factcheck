@@ -24,7 +24,7 @@ Built on the [Wikimedia Enterprise API](https://enterprise.wikimedia.com/).
 - WordPress 6.9+
 - PHP 8.1+
 - [Wikimedia Enterprise](https://enterprise.wikimedia.com/) API credentials
-- [AI](https://wordpress.org/plugins/ai/) plugin (declared as a required plugin dependency, installed automatically via WordPress)
+- For AI features on WordPress 6.9.x: the [AI](https://wordpress.org/plugins/ai/) plugin with at least one configured provider (WordPress 7.0+ includes the AI Client in core)
 
 ## Installation
 
@@ -52,7 +52,7 @@ Sign up at [enterprise.wikimedia.com](https://enterprise.wikimedia.com/). The On
 
 ### Do I need the AI plugin?
 
-The [AI](https://wordpress.org/plugins/ai/) plugin is listed as a required dependency and WordPress will prompt you to install it. The core Wikipedia lookup, credibility badge, and article summaries work without it, but the AI-powered topic suggestions and research briefings require the AI plugin with at least one configured provider.
+On WordPress 7.0+, the AI Client is built into core -- no extra plugin needed. On WordPress 6.9.x, install the [AI](https://wordpress.org/plugins/ai/) plugin and configure at least one provider. The core Wikipedia lookup, credibility badge, and article summaries work without any AI provider.
 
 ### Which AI providers are supported?
 
@@ -99,7 +99,7 @@ The plugin registers a Gutenberg sidebar panel that communicates with several RE
 
 Wikipedia API calls are made server-side via the `WP_Wikipedia_Factcheck_API` class, which handles JWT authentication with automatic token refresh (23-hour TTL). Credentials are never exposed to the browser.
 
-AI features are handled by `WP_Wikipedia_Factcheck_AI`, which integrates with the [AI](https://wordpress.org/plugins/ai/) plugin.
+AI features are handled by `WP_Wikipedia_Factcheck_AI`, which supports both the WordPress 7.0+ core AI Client and the [AI](https://wordpress.org/plugins/ai/) plugin on WordPress 6.9.x.
 
 When multiple providers are configured, the plugin currently prefers OpenAI first, then Google, then Anthropic.
 

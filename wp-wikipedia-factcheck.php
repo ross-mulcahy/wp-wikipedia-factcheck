@@ -5,7 +5,6 @@
  * Description: Wikipedia-powered fact-check panel for the Gutenberg block editor using the Wikimedia Enterprise API.
  * Version: 1.0.16
  * Requires at least: 6.9
- * Requires Plugins: ai
  * Requires PHP: 8.1
  * Author: Ross Mulcahy
  * Author URI:  https://developer-developer.com
